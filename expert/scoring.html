@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专家评审系统 - 项目评分</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/scoring.css">
+</head>
+<body>
+    <div class="scoring-layout">
+        <header class="header">
+            <div class="logo">专家评审系统</div>
+            <div class="user-info">
+                <span id="currentUser"></span>
+                <a href="#" id="logoutBtn">退出</a>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="project-navigation" id="projectNavigation" style="display: none;">
+                <h4>项目导航</h4>
+                <div class="project-icons" id="projectIcons">
+                    <!-- 项目数字图标将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <div class="project-info" id="projectInfo">
+                <h2>当前评审项目</h2>
+                <div class="info-content">
+                    <!-- 项目信息将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <div class="scoring-form" id="scoringForm">
+                <h3>评分表</h3>
+                <form id="scoreForm">
+                    <div class="score-items">
+                        <!-- 评分项将通过JavaScript动态生成 -->
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-submit" id="submitScoreBtn">提交评分</button>
+                        <button type="button" class="btn btn-complete-task" id="completeTaskBtn" style="display: none;">完成评审任务</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="waiting-message" id="waitingMessage" style="display: none;">
+                <h3>等待其他专家完成评分</h3>
+                <p>当前项目：<span id="currentProjectName"></span></p>
+                <p>评分进度：<span id="scoringProgress"></span></p>
+                <div id="refreshSection" style="display: none;">
+                    <p>等待时间较长，您可以：</p>
+                    <button id="refreshButton" class="btn">刷新进度</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="taskCompletionDialog" class="dialog" style="display: none;">
+        <div class="dialog-content">
+            <h3>评审任务完成</h3>
+            <p>您已完成所有项目的评分，是否结束本次评审任务？</p>
+            <div class="dialog-actions">
+                <button type="button" class="btn btn-confirm" id="confirmCompleteBtn">是，结束任务</button>
+                <button type="button" class="btn btn-cancel" id="cancelCompleteBtn" onclick="window.location.href='scoring.html?return_to_last=true'">否，继续查看</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/utils/error-handler.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script src="../js/expert/scoring.js"></script>
+</body>
+</html>

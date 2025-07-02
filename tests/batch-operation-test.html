@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量操作功能测试</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/project.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-info {
+            background: #f0f7ff;
+            border: 1px solid #1890ff;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .test-info h2 {
+            margin: 0 0 12px;
+            color: #1890ff;
+        }
+        .test-steps {
+            background: #f6ffed;
+            border: 1px solid #52c41a;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .test-steps h3 {
+            margin: 0 0 12px;
+            color: #52c41a;
+        }
+        .test-steps ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .test-steps li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-info">
+            <h2>批量操作功能测试 - TC106</h2>
+            <p><strong>测试目标：</strong>验证批量操作功能是否正常工作，特别是复选框不遮挡项目标题</p>
+            <p><strong>修复内容：</strong>增加项目卡片左边距，优化复选框样式</p>
+        </div>
+
+        <div class="test-steps">
+            <h3>测试步骤：</h3>
+            <ol>
+                <li>点击"批量操作"按钮进入批量操作模式</li>
+                <li>验证复选框是否正常显示且不遮挡项目标题</li>
+                <li>选择多个项目（勾选复选框）</li>
+                <li>验证已选择项目数量显示</li>
+                <li>点击"批量归档"或"批量删除"按钮</li>
+                <li>确认批量操作</li>
+                <li>验证选中项目状态是否更新</li>
+                <li>点击"取消"退出批量操作模式</li>
+            </ol>
+        </div>
+
+        <div class="project-content">
+            <div class="section-title">项目列表</div>
+            
+            <!-- 批量操作工具栏 -->
+            <div class="batch-toolbar" style="display: none;">
+                <div class="selected-count">
+                    已选择 <span id="selectedCount">0</span> 个项目
+                </div>
+                <div class="batch-actions">
+                    <button class="btn btn-batch-archive">批量归档</button>
+                    <button class="btn btn-batch-delete">批量删除</button>
+                    <button class="btn btn-batch-cancel">取消</button>
+                </div>
+            </div>
+
+            <div class="project-list" id="projectList">
+                <!-- 测试项目卡片 -->
+                <div class="project-card" data-id="1" data-status="active">
+                    <div class="project-select">
+                        <input type="checkbox" class="project-checkbox">
+                    </div>
+                    <h3>智能制造创新平台</h3>
+                    <div class="project-info">
+                        <div class="info-item">
+                            <label>单位：</label>
+                            <span>科技公司A</span>
+                        </div>
+                        <div class="info-item">
+                            <label>团队代表：</label>
+                            <span>张三</span>
+                        </div>
+                        <div class="info-item">
+                            <label>创建时间：</label>
+                            <span>2024-01-15 10:30:00</span>
+                        </div>
+                        <div class="info-item">
+                            <label>状态：</label>
+                            <span>已启用</span>
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button class="btn btn-edit">编辑</button>
+                        <button class="btn btn-archive">归档</button>
+                        <button class="btn btn-delete">删除</button>
+                    </div>
+                </div>
+
+                <div class="project-card" data-id="2" data-status="active">
+                    <div class="project-select">
+                        <input type="checkbox" class="project-checkbox">
+                    </div>
+                    <h3>绿色能源技术应用</h3>
+                    <div class="project-info">
+                        <div class="info-item">
+                            <label>单位：</label>
+                            <span>环保公司B</span>
+                        </div>
+                        <div class="info-item">
+                            <label>团队代表：</label>
+                            <span>李四</span>
+                        </div>
+                        <div class="info-item">
+                            <label>创建时间：</label>
+                            <span>2024-01-16 14:20:00</span>
+                        </div>
+                        <div class="info-item">
+                            <label>状态：</label>
+                            <span>已启用</span>
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button class="btn btn-edit">编辑</button>
+                        <button class="btn btn-archive">归档</button>
+                        <button class="btn btn-delete">删除</button>
+                    </div>
+                </div>
+
+                <div class="project-card" data-id="3" data-status="active">
+                    <div class="project-select">
+                        <input type="checkbox" class="project-checkbox">
+                    </div>
+                    <h3>人工智能医疗诊断系统</h3>
+                    <div class="project-info">
+                        <div class="info-item">
+                            <label>单位：</label>
+                            <span>医疗科技C</span>
+                        </div>
+                        <div class="info-item">
+                            <label>团队代表：</label>
+                            <span>王五</span>
+                        </div>
+                        <div class="info-item">
+                            <label>创建时间：</label>
+                            <span>2024-01-17 09:15:00</span>
+                        </div>
+                        <div class="info-item">
+                            <label>状态：</label>
+                            <span>已启用</span>
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button class="btn btn-edit">编辑</button>
+                        <button class="btn btn-archive">归档</button>
+                        <button class="btn btn-delete">删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <button id="batchActionBtn" class="btn">批量操作</button>
+            <button id="resetBtn" class="btn" style="margin-left: 10px;">重置测试</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            let batchMode = false;
+
+            // 批量操作按钮点击事件
+            $('#batchActionBtn').on('click', function() {
+                if (!batchMode) {
+                    enterBatchMode();
+                } else {
+                    exitBatchMode();
+                }
+            });
+
+            // 重置按钮点击事件
+            $('#resetBtn').on('click', function() {
+                exitBatchMode();
+                $('.project-checkbox').prop('checked', false);
+                updateSelectedCount();
+            });
+
+            // 复选框变化事件
+            $(document).on('change', '.project-checkbox', function() {
+                updateSelectedCount();
+            });
+
+            // 批量操作按钮事件
+            $('.btn-batch-archive').on('click', function() {
+                const selectedIds = getSelectedProjectIds();
+                if (selectedIds.length > 0) {
+                    alert(`批量归档 ${selectedIds.length} 个项目：${selectedIds.join(', ')}`);
+                } else {
+                    alert('请先选择要归档的项目');
+                }
+            });
+
+            $('.btn-batch-delete').on('click', function() {
+                const selectedIds = getSelectedProjectIds();
+                if (selectedIds.length > 0) {
+                    if (confirm(`确定要删除 ${selectedIds.length} 个项目吗？`)) {
+                        alert(`批量删除 ${selectedIds.length} 个项目：${selectedIds.join(', ')}`);
+                    }
+                } else {
+                    alert('请先选择要删除的项目');
+                }
+            });
+
+            $('.btn-batch-cancel').on('click', function() {
+                exitBatchMode();
+            });
+
+            // 进入批量操作模式
+            function enterBatchMode() {
+                batchMode = true;
+                $('#batchActionBtn').addClass('active').text('退出批量操作');
+                $('.batch-toolbar').show();
+                $('.project-select').show();
+                $('.project-actions').hide();
+                updateSelectedCount();
+            }
+
+            // 退出批量操作模式
+            function exitBatchMode() {
+                batchMode = false;
+                $('#batchActionBtn').removeClass('active').text('批量操作');
+                $('.batch-toolbar').hide();
+                $('.project-select').hide();
+                $('.project-actions').show();
+                $('.project-checkbox').prop('checked', false);
+                updateSelectedCount();
+            }
+
+            // 更新选中数量
+            function updateSelectedCount() {
+                const count = $('.project-checkbox:checked').length;
+                $('#selectedCount').text(count);
+            }
+
+            // 获取选中的项目ID
+            function getSelectedProjectIds() {
+                const selectedIds = [];
+                $('.project-checkbox:checked').each(function() {
+                    selectedIds.push($(this).closest('.project-card').data('id'));
+                });
+                return selectedIds;
+            }
+
+            // 初始化
+            updateSelectedCount();
+        });
+    </script>
+</body>
+</html> 

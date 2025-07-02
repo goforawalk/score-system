@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录集成测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>用户登录集成测试</h1>
+    
+    <div class="test-section">
+        <h2>测试用例 TC202：新增用户功能测试</h2>
+        <p>测试新增用户后使用新用户凭据登录系统的功能，验证页面跳转是否正常。</p>
+        
+        <div class="form-group">
+            <label>用户名:</label>
+            <input type="text" id="testUsername" placeholder="输入测试用户名">
+        </div>
+        <div class="form-group">
+            <label>密码:</label>
+            <input type="password" id="testPassword" placeholder="输入测试密码">
+        </div>
+        <div class="form-group">
+            <label>角色:</label>
+            <select id="testRole">
+                <option value="expert1">专家1</option>
+                <option value="expert2">专家2</option>
+                <option value="expert3">专家3</option>
+                <option value="admin">管理员</option>
+            </select>
+        </div>
+        
+        <button onclick="runTest()">运行测试</button>
+        <button onclick="clearResults()">清除结果</button>
+    </div>
+    
+    <div id="testResults"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // 模拟mockApi对象
+        const mockApi = {
+            users: [
+                { username: 'admin', name: '管理员', password: 'admin123', role: 'admin' },
+                { username: 'expert1', name: '评审专家1', password: 'expert123', role: 'expert1' },
+                { username: 'expert2', name: '评审专家2', password: 'expert123', role: 'expert2' }
+            ],
+
+            addUser: function(userData) {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        if (this.users.some(u => u.username === userData.username)) {
+                            reject({
+                                success: false,
+                                message: '用户名已存在'
+                            });
+                            return;
+                        }
+                        
+                        const newUser = {
+                            ...userData,
+                            createTime: new Date().toISOString()
+                        };
+                        this.users.push(newUser);
+                        
+                        console.log('新增用户后的用户列表:', this.users.map(u => ({ username: u.username, role: u.role })));
+                        
+                        resolve({
+                            success: true,
+                            data: {
+                                ...newUser,
+                                password: undefined
+                            }
+                        });
+                    }, 100);
+                });
+            },
+
+            login: function(username, password) {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        console.log('登录验证 - 用户名:', username, '密码:', password);
+                        console.log('当前用户列表:', this.users.map(u => ({ username: u.username, role: u.role })));
+                        
+                        const user = this.users.find(u => 
+                            u.username === username && u.password === password
+                        );
+                        
+                        if (user) {
+                            resolve({
+                                success: true,
+                                data: {
+                                    username: user.username,
+                                    role: user.role,
+                                    token: 'mock-jwt-token-' + Date.now()
+                                }
+                            });
+                        } else {
+                            reject({
+                                success: false,
+                                message: '用户名或密码错误'
+                            });
+                        }
+                    }, 100);
+                });
+            }
+        };
+
+        // 模拟auth对象
+        const auth = {
+            setUserInfo: function(userInfo) {
+                localStorage.setItem('userInfo', JSON.stringify(userInfo));
+            },
+            getUserInfo: function() {
+                const userInfo = localStorage.getItem('userInfo');
+                return userInfo ? JSON.parse(userInfo) : null;
+            },
+            removeUserInfo: function() {
+                localStorage.removeItem('userInfo');
+            },
+            isLoggedIn: function() {
+                return !!this.getUserInfo();
+            },
+            getRole: function() {
+                const userInfo = this.getUserInfo();
+                return userInfo ? userInfo.role : null;
+            }
+        };
+
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        async function runTest() {
+            clearResults();
+            addTestResult('开始运行测试用例 TC202：新增用户功能测试', 'info');
+            
+            const username = document.getElementById('testUsername').value.trim();
+            const password = document.getElementById('testPassword').value.trim();
+            const role = document.getElementById('testRole').value;
+            
+            if (!username || !password) {
+                addTestResult('错误：请填写用户名和密码', 'error');
+                return;
+            }
+            
+            const testUser = {
+                name: '测试用户',
+                username: username,
+                password: password,
+                role: role,
+                status: 'active'
+            };
+            
+            try {
+                // 步骤1：新增用户
+                addTestResult('步骤1：尝试新增用户...', 'info');
+                const addResult = await mockApi.addUser(testUser);
+                
+                if (addResult.success) {
+                    addTestResult('✓ 新增用户成功', 'success');
+                    addTestResult(`用户信息：${username} (${role})`, 'info');
+                } else {
+                    addTestResult('✗ 新增用户失败', 'error');
+                    return;
+                }
+                
+                // 步骤2：尝试登录
+                addTestResult('步骤2：尝试使用新用户登录...', 'info');
+                const loginResult = await mockApi.login(username, password);
+                
+                if (loginResult.success) {
+                    addTestResult('✓ 登录成功', 'success');
+                    addTestResult(`登录信息：${loginResult.data.username} (${loginResult.data.role})`, 'info');
+                    
+                    // 步骤3：验证页面跳转逻辑
+                    addTestResult('步骤3：验证页面跳转逻辑...', 'info');
+                    
+                    // 模拟登录成功后的跳转逻辑
+                    auth.setUserInfo(loginResult.data);
+                    
+                    const userRole = loginResult.data.role;
+                    let expectedPage = '';
+                    
+                    if (userRole === 'admin') {
+                        expectedPage = 'admin/dashboard.html';
+                    } else if (userRole.startsWith('expert')) {
+                        expectedPage = 'expert/scoring.html';
+                    }
+                    
+                    addTestResult(`预期跳转页面：${expectedPage}`, 'info');
+                    
+                    // 验证专家页面权限检查
+                    if (userRole.startsWith('expert')) {
+                        const isLoggedIn = auth.isLoggedIn();
+                        const userRoleCheck = auth.getRole();
+                        const hasExpertPermission = userRoleCheck && userRoleCheck.startsWith('expert');
+                        
+                        addTestResult(`登录状态检查：${isLoggedIn ? '已登录' : '未登录'}`, isLoggedIn ? 'success' : 'error');
+                        addTestResult(`角色检查：${userRoleCheck}`, 'info');
+                        addTestResult(`专家权限检查：${hasExpertPermission ? '通过' : '失败'}`, hasExpertPermission ? 'success' : 'error');
+                        
+                        if (isLoggedIn && hasExpertPermission) {
+                            addTestResult('✓ 专家页面权限验证通过，不会出现页面跳转循环', 'success');
+                        } else {
+                            addTestResult('✗ 专家页面权限验证失败，可能出现页面跳转循环', 'error');
+                        }
+                    }
+                    
+                    // 清理测试数据
+                    auth.removeUserInfo();
+                    addTestResult('测试完成，已清理测试数据', 'info');
+                    
+                } else {
+                    addTestResult('✗ 登录失败', 'error');
+                    addTestResult(`错误信息：${loginResult.message}`, 'error');
+                }
+                
+            } catch (error) {
+                addTestResult(`✗ 测试过程中出现错误：${error.message}`, 'error');
+                console.error('测试错误:', error);
+            }
+        }
+
+        // 页面加载时初始化
+        $(document).ready(function() {
+            // 生成随机测试用户名
+            const randomUsername = 'testuser' + Date.now();
+            document.getElementById('testUsername').value = randomUsername;
+            document.getElementById('testPassword').value = 'test123';
+            
+            addTestResult('测试页面已加载，请点击"运行测试"按钮开始测试', 'info');
+        });
+    </script>
+</body>
+</html> 

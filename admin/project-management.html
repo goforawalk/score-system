@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专家评审系统 - 项目管理</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/project.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="logo">专家评审系统</div>
+            <nav class="menu">
+                <a href="dashboard.html" class="active">控制台首页</a>
+                <a href="project-management.html">项目管理</a>
+                <a href="user-management.html">用户管理</a>
+                <a href="statistics.html">统计分析</a>
+            </nav>
+            <div class="user-info">
+                <span id="currentUser"></span>
+                <a href="#" id="logoutBtn">退出</a>
+            </div>
+        </aside>
+        <main class="main-content">
+            <header class="header">
+                <h1>项目管理</h1>
+                <div class="header-actions">
+                    <button id="batchActionBtn" class="btn">批量操作</button>
+                    <button id="addProjectBtn" class="btn">新建项目</button>
+                    <input type="file" id="importFile" style="display: none" accept=".json">
+                    <button class="btn" onclick="document.getElementById('importFile').click()">
+                        导入项目
+                    </button>
+                </div>
+            </header>
+
+            <!-- 添加批量操作工具栏 -->
+            <div class="batch-toolbar">
+                <div class="selected-count">
+                    已选择 <span id="selectedCount">0</span> 个项目
+                </div>
+                <div class="batch-actions">
+                    <button class="btn btn-batch-archive">批量归档</button>
+                    <button class="btn btn-batch-delete">批量删除</button>
+                    <button class="btn btn-batch-cancel">取消</button>
+                </div>
+            </div>
+
+            <!-- 修改模板选择对话框的内容 -->
+<div id="templateDialog" class="dialog">
+    <div class="dialog-content">
+        <span class="dialog-close">&times;</span>
+        <h2>选择项目模板</h2>
+        <div class="template-list">
+            <div class="template-item" data-template="preliminary">
+                <h3>初赛评审模板</h3>
+                <p>包含产业、投融资、知识产权三个评分项</p>
+            </div>
+            <div class="template-item" data-template="semifinal">
+                <h3>复赛评审模板</h3>
+                <p>包含产业技术、投融资、知识产权、企业高管四个评分项</p>
+            </div>
+            <div class="template-item" data-template="final">
+                <h3>决赛评审模板</h3>
+                <p>包含投资、知识产权、产业技术、技术经理人、企业高管五个评分项</p>
+            </div>
+            <div class="template-item" data-template="fullProcess">
+                <h3>高转赛模板</h3>
+                <p>包含初赛、复赛、决赛三个阶段的完整评分项组合</p>
+            </div>
+        </div>
+        <div class="dialog-buttons">
+            <button type="button" class="btn" onclick="useTemplate()">使用模板</button>
+            <button type="button" class="btn btn-cancel" onclick="closeTemplateDialog()">取消</button>
+        </div>
+    </div>
+</div>
+
+            <div class="project-content">
+                <div class="section-title">项目列表</div>
+                <div class="project-list" id="projectList">
+                    <!-- 项目列表将通过 JavaScript 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 新增：评审任务列表区域 -->
+            <div class="project-content">
+                <div class="section-title">评审任务列表</div>
+                <div id="taskListContainer" class="task-list-container">
+                    <!-- 任务将在这里通过 JavaScript 渲染 -->
+                    <p>正在加载任务列表...</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- 修改新建/编辑项目对话框 -->
+<div id="projectDialog" class="dialog">
+    <div class="dialog-content">
+        <span class="dialog-close">&times;</span>
+        <h2 id="dialogTitle">新建项目</h2>
+        <form id="projectForm">
+            <div class="form-group">
+                <label for="projectName">成果名称</label>
+                <input type="text" id="projectName" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="projectUnit">单位</label>
+                <input type="text" id="projectUnit" name="unit" required>
+            </div>
+            <div class="form-group">
+                <label for="projectLeader">团队代表</label>
+                <input type="text" id="projectLeader" name="leader" required>
+            </div>
+            <!-- 修改项目对话框中的评分项配置部分 -->
+<div class="form-group">
+    <label>评分项配置</label>
+    <div class="score-groups">
+        <div class="score-group">
+            <h4>初赛评分项</h4>
+            <div id="preliminaryScoreItems" class="score-items-container">
+                <!-- 初赛评分项将通过JavaScript动态生成 -->
+            </div>
+            <button type="button" class="btn btn-add-score-item" data-group="preliminary">添加初赛评分项</button>
+        </div>
+        
+        <div class="score-group">
+            <h4>复赛评分项</h4>
+            <div id="semifinalScoreItems" class="score-items-container">
+                <!-- 复赛评分项将通过JavaScript动态生成 -->
+            </div>
+            <button type="button" class="btn btn-add-score-item" data-group="semifinal">添加复赛评分项</button>
+        </div>
+        
+        <div class="score-group">
+            <h4>决赛评分项</h4>
+            <div id="finalScoreItems" class="score-items-container">
+                <!-- 决赛评分项将通过JavaScript动态生成 -->
+            </div>
+            <button type="button" class="btn btn-add-score-item" data-group="final">添加决赛评分项</button>
+        </div>
+    </div>
+</div>
+            <!--button type="button" id="addScoreItem" class="btn">添加评分项</button-->
+            <div class="dialog-buttons">
+                <button type="submit" class="btn">保存</button>
+                <button type="button" class="btn btn-cancel">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <!-- 修改评审任务对话框 -->
+<div id="taskDialog" class="dialog">
+    <div class="dialog-content">
+        <span class="dialog-close">&times;</span>
+        <h2 id="taskDialogTitle">创建评审任务</h2>
+        <form id="taskForm">
+            <!-- 添加任务类别输入框 -->
+            <div class="form-group">
+                <label for="taskCategory">任务类别</label>
+                <input type="text" id="taskCategory" name="taskCategory" required>
+            </div>
+            <!-- 添加任务类型选择 -->
+            <div class="form-group">
+                <label>任务类型</label>
+                <div class="task-type-options">
+                    <label class="radio-label">
+                        <input type="radio" name="taskType" value="1" checked>
+                        <span>类型1：全部专家完成后进入下一项目</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="taskType" value="2">
+                        <span>类型2：个人完成后可进入下一项目</span>
+                    </label>
+                </div>
+            </div>
+            <!-- 修改评审任务对话框中的项目选择部分 -->
+<div class="form-group">
+    <label>选择项目及评分组合</label>
+    <div id="taskProjects" class="task-projects">
+        <div class="task-projects-group">
+            <div class="task-projects-group-title">已选择项目</div>
+            <div id="selectedProjects" class="task-projects-sortable"></div>
+        </div>
+        <div class="task-projects-group">
+            <div class="task-projects-group-title">未选择项目</div>
+            <div id="unselectedProjects" class="task-projects-sortable"></div>
+        </div>
+    </div>
+</div>
+<!-- 添加评分组合选择部分 -->
+<div class="form-group">
+    <label>评分组合选择</label>
+    <div class="score-group-select">
+        <label class="radio-label">
+            <input type="radio" name="scoreGroupType" value="preliminary" checked>
+            <span>初赛评分项</span>
+        </label>
+        <label class="radio-label">
+            <input type="radio" name="scoreGroupType" value="semifinal">
+            <span>复赛评分项</span>
+        </label>
+        <label class="radio-label">
+            <input type="radio" name="scoreGroupType" value="final">
+            <span>决赛评分项</span>
+        </label>
+    </div>
+</div>
+<!-- 在评分组合选择后添加评审专家选择部分 -->
+<div class="form-group">
+    <label>评审专家选择</label>
+    <div id="taskExperts" class="task-experts">
+        <div class="task-experts-group">
+            <div class="task-experts-group-title">已选择专家</div>
+            <div id="selectedExperts" class="task-experts-sortable"></div>
+        </div>
+        <div class="task-experts-group">
+            <div class="task-experts-group-title">未选择专家</div>
+            <div id="unselectedExperts" class="task-experts-sortable"></div>
+        </div>
+    </div>
+</div>
+            <div class="dialog-buttons">
+                <button type="submit" class="btn btn-submit">保存</button>
+                <button type="button" class="btn btn-cancel">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script src="../js/utils/error-handler.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script src="../js/api/env.js"></script>
+    <script src="../js/api/config.js"></script>
+    <script src="../js/api/http.js"></script>
+    <script src="../js/api/api-service.js"></script>
+    <script src="../js/api/api-adapter.js"></script>
+    <script src="../js/admin/project-management.js"></script>
+</body>
+</html>

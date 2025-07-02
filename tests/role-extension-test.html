@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色扩展功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-title {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .user-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .user-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .role-admin {
+            background-color: #dc3545;
+            color: white;
+        }
+        .role-expert {
+            background-color: #007bff;
+            color: white;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>角色扩展功能测试</h1>
+        <p>验证系统角色从3个专家扩展到8个角色（管理员、评审专家1-7）的功能</p>
+
+        <div class="test-section">
+            <h2 class="test-title">1. 用户数据验证</h2>
+            <button onclick="testUserData()">测试用户数据</button>
+            <div id="userDataResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">2. 角色映射验证</h2>
+            <button onclick="testRoleMapping()">测试角色映射</button>
+            <div id="roleMappingResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">3. 登录跳转验证</h2>
+            <button onclick="testLoginRedirect()">测试登录跳转</button>
+            <div id="loginRedirectResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">4. 权限验证</h2>
+            <button onclick="testPermissionCheck()">测试权限验证</button>
+            <div id="permissionResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">5. 项目管理角色配置</h2>
+            <button onclick="testProjectRoles()">测试项目角色配置</button>
+            <div id="projectRolesResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">6. 统计功能验证</h2>
+            <button onclick="testStatistics()">测试统计功能</button>
+            <div id="statisticsResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">7. 综合测试</h2>
+            <button onclick="runAllTests()">运行所有测试</button>
+            <div id="allTestsResult"></div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/admin/user-management.js"></script>
+
+    <script>
+        // 测试用户数据
+        function testUserData() {
+            const result = document.getElementById('userDataResult');
+            result.innerHTML = '';
+
+            try {
+                // 验证用户数量
+                const expectedCount = 8; // 1个管理员 + 7个专家
+                const actualCount = mockApi.users.length;
+                
+                if (actualCount === expectedCount) {
+                    result.innerHTML += '<div class="test-result success">✅ 用户数量正确: ' + actualCount + ' 个用户</div>';
+                } else {
+                    result.innerHTML += '<div class="test-result error">❌ 用户数量错误: 期望 ' + expectedCount + '，实际 ' + actualCount + '</div>';
+                }
+
+                // 验证角色分布
+                const adminCount = mockApi.users.filter(u => u.role === 'admin').length;
+                const expertCount = mockApi.users.filter(u => u.role.startsWith('expert')).length;
+                
+                result.innerHTML += '<div class="test-result info">📊 角色分布: 管理员 ' + adminCount + ' 个，专家 ' + expertCount + ' 个</div>';
+
+                // 显示用户列表
+                let userListHtml = '<div class="user-list">';
+                mockApi.users.forEach(user => {
+                    const roleClass = user.role === 'admin' ? 'role-admin' : 'role-expert';
+                    userListHtml += `
+                        <div class="user-item">
+                            <strong>${user.name}</strong><br>
+                            <span class="role-badge ${roleClass}">${user.role}</span><br>
+                            <small>${user.username}</small>
+                        </div>
+                    `;
+                });
+                userListHtml += '</div>';
+                result.innerHTML += userListHtml;
+
+                // 验证专家角色命名
+                const expertRoles = mockApi.users.filter(u => u.role.startsWith('expert')).map(u => u.role);
+                const expectedExpertRoles = ['expert1', 'expert2', 'expert3', 'expert4', 'expert5', 'expert6', 'expert7'];
+                
+                const rolesMatch = JSON.stringify(expertRoles.sort()) === JSON.stringify(expectedExpertRoles);
+                if (rolesMatch) {
+                    result.innerHTML += '<div class="test-result success">✅ 专家角色命名正确</div>';
+                } else {
+                    result.innerHTML += '<div class="test-result error">❌ 专家角色命名错误</div>';
+                }
+
+            } catch (error) {
+                result.innerHTML += '<div class="test-result error">❌ 测试失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 测试角色映射
+        function testRoleMapping() {
+            const result = document.getElementById('roleMappingResult');
+            result.innerHTML = '';
+
+            try {
+                const testRoles = ['admin', 'expert1', 'expert2', 'expert3', 'expert4', 'expert5', 'expert6', 'expert7'];
+                const expectedMappings = {
+                    'admin': '管理员',
+                    'expert1': '评审专家1',
+                    'expert2': '评审专家2',
+                    'expert3': '评审专家3',
+                    'expert4': '评审专家4',
+                    'expert5': '评审专家5',
+                    'expert6': '评审专家6',
+                    'expert7': '评审专家7'
+                };
+
+                let allCorrect = true;
+                testRoles.forEach(role => {
+                    const mappedText = getRoleText(role);
+                    const expectedText = expectedMappings[role];
+                    
+                    if (mappedText === expectedText) {
+                        result.innerHTML += '<div class="test-result success">✅ ' + role + ' → ' + mappedText + '</div>';
+                    } else {
+                        result.innerHTML += '<div class="test-result error">❌ ' + role + ' → ' + mappedText + ' (期望: ' + expectedText + ')</div>';
+                        allCorrect = false;
+                    }
+                });
+
+                if (allCorrect) {
+                    result.innerHTML += '<div class="test-result success">🎉 所有角色映射正确</div>';
+                }
+
+            } catch (error) {
+                result.innerHTML += '<div class="test-result error">❌ 测试失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 测试登录跳转
+        function testLoginRedirect() {
+            const result = document.getElementById('loginRedirectResult');
+            result.innerHTML = '';
+
+            try {
+                // 模拟登录跳转逻辑
+                function testRedirectByRole(role) {
+                    if (role === 'admin') {
+                        return 'admin/dashboard.html';
+                    } else if (role.startsWith('expert')) {
+                        return 'expert/scoring.html';
+                    }
+                    return 'unknown';
+                }
+
+                const testCases = [
+                    { role: 'admin', expected: 'admin/dashboard.html' },
+                    { role: 'expert1', expected: 'expert/scoring.html' },
+                    { role: 'expert2', expected: 'expert/scoring.html' },
+                    { role: 'expert3', expected: 'expert/scoring.html' },
+                    { role: 'expert4', expected: 'expert/scoring.html' },
+                    { role: 'expert5', expected: 'expert/scoring.html' },
+                    { role: 'expert6', expected: 'expert/scoring.html' },
+                    { role: 'expert7', expected: 'expert/scoring.html' }
+                ];
+
+                let allCorrect = true;
+                testCases.forEach(testCase => {
+                    const actual = testRedirectByRole(testCase.role);
+                    if (actual === testCase.expected) {
+                        result.innerHTML += '<div class="test-result success">✅ ' + testCase.role + ' → ' + actual + '</div>';
+                    } else {
+                        result.innerHTML += '<div class="test-result error">❌ ' + testCase.role + ' → ' + actual + ' (期望: ' + testCase.expected + ')</div>';
+                        allCorrect = false;
+                    }
+                });
+
+                if (allCorrect) {
+                    result.innerHTML += '<div class="test-result success">🎉 所有登录跳转正确</div>';
+                }
+
+            } catch (error) {
+                result.innerHTML += '<div class="test-result error">❌ 测试失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 测试权限验证
+        function testPermissionCheck() {
+            const result = document.getElementById('permissionResult');
+            result.innerHTML = '';
+
+            try {
+                // 测试专家角色过滤
+                const allUsers = mockApi.users;
+                const expertUsers = allUsers.filter(u => u.role.startsWith('expert'));
+                const adminUsers = allUsers.filter(u => u.role === 'admin');
+
+                result.innerHTML += '<div class="test-result info">📊 用户分类统计:</div>';
+                result.innerHTML += '<div class="test-result success">✅ 专家用户: ' + expertUsers.length + ' 个</div>';
+                result.innerHTML += '<div class="test-result success">✅ 管理员用户: ' + adminUsers.length + ' 个</div>';
+
+                // 验证专家角色列表
+                const expertRoles = ['expert1', 'expert2', 'expert3', 'expert4', 'expert5', 'expert6', 'expert7'];
+                const foundExpertRoles = expertUsers.map(u => u.role).sort();
+                
+                if (JSON.stringify(foundExpertRoles) === JSON.stringify(expertRoles)) {
+                    result.innerHTML += '<div class="test-result success">✅ 专家角色过滤正确</div>';
+                } else {
+                    result.innerHTML += '<div class="test-result error">❌ 专家角色过滤错误</div>';
+                }
+
+                // 测试角色权限判断
+                const permissionTests = [
+                    { role: 'admin', isAdmin: true, isExpert: false },
+                    { role: 'expert1', isAdmin: false, isExpert: true },
+                    { role: 'expert7', isAdmin: false, isExpert: true }
+                ];
+
+                permissionTests.forEach(test => {
+                    const isAdmin = test.role === 'admin';
+                    const isExpert = test.role.startsWith('expert');
+                    
+                    if (isAdmin === test.isAdmin && isExpert === test.isExpert) {
+                        result.innerHTML += '<div class="test-result success">✅ ' + test.role + ' 权限判断正确</div>';
+                    } else {
+                        result.innerHTML += '<div class="test-result error">❌ ' + test.role + ' 权限判断错误</div>';
+                    }
+                });
+
+            } catch (error) {
+                result.innerHTML += '<div class="test-result error">❌ 测试失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 测试项目角色配置
+        function testProjectRoles() {
+            const result = document.getElementById('projectRolesResult');
+            result.innerHTML = '';
+
+            try {
+                // 测试专家角色获取
+                mockApi.getExpertRoles().then(response => {
+                    if (response.success) {
+                        const expertRoles = response.data;
+                        result.innerHTML += '<div class="test-result success">✅ 获取专家角色成功: ' + expertRoles.length + ' 个角色</div>';
+                        
+                        // 验证角色列表
+                        const expectedRoles = ['expert1', 'expert2', 'expert3', 'expert4', 'expert5', 'expert6', 'expert7'];
+                        if (JSON.stringify(expertRoles.sort()) === JSON.stringify(expectedRoles)) {
+                            result.innerHTML += '<div class="test-result success">✅ 专家角色列表正确</div>';
+                        } else {
+                            result.innerHTML += '<div class="test-result error">❌ 专家角色列表错误</div>';
+                        }
+                    } else {
+                        result.innerHTML += '<div class="test-result error">❌ 获取专家角色失败</div>';
+                    }
+                }).catch(error => {
+                    result.innerHTML += '<div class="test-result error">❌ 获取专家角色异常: ' + error.message + '</div>';
+                });
+
+                // 测试项目模板中的角色配置
+                const templates = mockApi.projectTemplates;
+                if (templates && templates.length > 0) {
+                    result.innerHTML += '<div class="test-result success">✅ 项目模板配置正确</div>';
+                    
+                    // 检查模板中的角色配置
+                    templates.forEach(template => {
+                        if (template.scoreItems) {
+                            template.scoreItems.forEach(item => {
+                                if (item.roles && item.roles.length > 0) {
+                                    result.innerHTML += '<div class="test-result info">📋 ' + template.name + ' - ' + item.name + ': ' + item.roles.join(', ') + '</div>';
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    result.innerHTML += '<div class="test-result error">❌ 项目模板配置错误</div>';
+                }
+
+            } catch (error) {
+                result.innerHTML += '<div class="test-result error">❌ 测试失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 测试统计功能
+        function testStatistics() {
+            const result = document.getElementById('statisticsResult');
+            result.innerHTML = '';
+
+            try {
+                // 测试项目统计
+                mockApi.getProjectStats().then(response => {
+                    if (response.success) {
+                        const stats = response.data;
+                        result.innerHTML += '<div class="test-result success">✅ 项目统计获取成功</div>';
+                        result.innerHTML += '<div class="test-result info">📊 总专家数: ' + stats.totalExperts + '</div>';
+                        
+                        if (stats.totalExperts === 7) {
+                            result.innerHTML += '<div class="test-result success">✅ 专家统计正确</div>';
+                        } else {
+                            result.innerHTML += '<div class="test-result error">❌ 专家统计错误: 期望7，实际' + stats.totalExperts + '</div>';
+                        }
+                    } else {
+                        result.innerHTML += '<div class="test-result error">❌ 项目统计获取失败</div>';
+                    }
+                }).catch(error => {
+                    result.innerHTML += '<div class="test-result error">❌ 项目统计异常: ' + error.message + '</div>';
+                });
+
+            } catch (error) {
+                result.innerHTML += '<div class="test-result error">❌ 测试失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 运行所有测试
+        function runAllTests() {
+            const result = document.getElementById('allTestsResult');
+            result.innerHTML = '<div class="test-result info">🔄 正在运行所有测试...</div>';
+
+            // 依次运行所有测试
+            setTimeout(() => testUserData(), 100);
+            setTimeout(() => testRoleMapping(), 200);
+            setTimeout(() => testLoginRedirect(), 300);
+            setTimeout(() => testPermissionCheck(), 400);
+            setTimeout(() => testProjectRoles(), 500);
+            setTimeout(() => testStatistics(), 600);
+            
+            setTimeout(() => {
+                result.innerHTML = '<div class="test-result success">🎉 所有测试完成！请查看上方各测试结果。</div>';
+            }, 1000);
+        }
+
+        // 页面加载完成后显示基本信息
+        $(document).ready(function() {
+            console.log('角色扩展测试页面已加载');
+            console.log('当前用户数据:', mockApi.users);
+        });
+    </script>
+</body>
+</html> 

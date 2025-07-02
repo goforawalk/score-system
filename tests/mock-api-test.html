@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock API 测试</title>
+</head>
+<body>
+    <h1>Mock API 测试</h1>
+    <div id="testResults"></div>
+
+    <script src="../js/api/mock.js"></script>
+    <script>
+        // 模拟用户登录
+        localStorage.setItem('userInfo', JSON.stringify({
+            username: 'expert1',
+            role: 'expert'
+        }));
+
+        async function testMockApi() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '<h2>测试结果：</h2>';
+
+            try {
+                // 测试 getProjectScoringProgress
+                console.log('测试 getProjectScoringProgress...');
+                const progressResponse = await mockApi.getProjectScoringProgress(1);
+                console.log('getProjectScoringProgress 结果:', progressResponse);
+                results.innerHTML += `<p>✅ getProjectScoringProgress: ${JSON.stringify(progressResponse)}</p>`;
+
+                // 测试 submitScore
+                console.log('测试 submitScore...');
+                const scoreData = {
+                    projectId: 1,
+                    username: 'expert1',
+                    scores: [
+                        { itemId: 0, score: 85 },
+                        { itemId: 1, score: 90 }
+                    ]
+                };
+                const submitResponse = await mockApi.submitScore(scoreData);
+                console.log('submitScore 结果:', submitResponse);
+                results.innerHTML += `<p>✅ submitScore: ${JSON.stringify(submitResponse)}</p>`;
+
+                // 测试 getScoringHistory
+                console.log('测试 getScoringHistory...');
+                const historyResponse = await mockApi.getScoringHistory(1, 'expert1');
+                console.log('getScoringHistory 结果:', historyResponse);
+                results.innerHTML += `<p>✅ getScoringHistory: ${JSON.stringify(historyResponse)}</p>`;
+
+            } catch (error) {
+                console.error('测试失败:', error);
+                results.innerHTML += `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        // 页面加载完成后运行测试
+        window.addEventListener('load', testMockApi);
+    </script>
+</body>
+</html> 
+ 

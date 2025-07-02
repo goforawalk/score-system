@@ -1,0 +1,36 @@
+{
+  "name": "score-system",
+  "version": "1.0.0",
+  "description": "专家评审系统",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "@jest/globals": "^27.5.1",
+    "jest": "^27.5.1",
+    "jquery": "^3.7.1",
+    "jsdom": "^16.7.0"
+  },
+  "jest": {
+    "setupFiles": [
+      "./tests/setup.js"
+    ],
+    "testEnvironment": "jsdom",
+    "moduleDirectories": [
+      "node_modules",
+      "src"
+    ],
+    "verbose": true,
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "js/**/*.js",
+      "!js/lib/**",
+      "!**/node_modules/**"
+    ]
+  }
+}

@@ -1,0 +1,304 @@
+.scoring-layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: #001529;
+    color: #fff;
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.user-info a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.main-content {
+    flex: 1;
+    padding: 24px;
+    background: #f0f2f5;
+}
+
+/* 项目导航样式 */
+.project-navigation {
+    background: #fff;
+    padding: 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.project-navigation h4 {
+    margin: 0 0 12px;
+    color: #333;
+}
+
+.project-icons {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.project-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+    border: 2px solid;
+}
+
+.project-icon.pending {
+    background: #f0f0f0;
+    color: #666;
+    border-color: #d9d9d9;
+}
+
+.project-icon.current {
+    background: #ff4d4f;
+    color: #fff;
+    border-color: #ff4d4f;
+}
+
+.project-icon.completed {
+    background: #1890ff;
+    color: #fff;
+    border-color: #1890ff;
+}
+
+.project-icon:hover {
+    transform: scale(1.1);
+}
+
+.project-info {
+    background: #fff;
+    padding: 24px;
+    border-radius: 4px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.info-content {
+    margin-top: 16px;
+}
+
+.info-item {
+    margin-bottom: 12px;
+}
+
+.info-item label {
+    color: #666;
+    margin-right: 8px;
+}
+
+.scoring-form {
+    background: #fff;
+    padding: 24px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.score-items {
+    margin-bottom: 24px;
+}
+
+.score-item {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.score-item:last-child {
+    border-bottom: none;
+}
+
+.score-item h4 {
+    margin: 0 0 12px;
+    color: #333;
+}
+
+.score-item .score-range {
+    color: #666;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.score-input {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.score-input input[type="number"] {
+    width: 120px;
+    min-width: 100px;
+    max-width: 200px;
+    padding: 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+}
+
+.score-input input[type="number"]:focus {
+    outline: none;
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.waiting-message {
+    background: #fff;
+    padding: 24px;
+    border-radius: 4px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.waiting-message h3 {
+    color: #1890ff;
+    margin-bottom: 16px;
+}
+
+.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.form-actions {
+    margin-top: 24px;
+    text-align: center;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.btn-submit {
+    min-width: 120px;
+}
+
+.btn-complete-task {
+    min-width: 120px;
+    background: #52c41a;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-complete-task:hover {
+    background: #73d13d;
+}
+
+/* 任务完成确认对话框样式 */
+.dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background: #fff;
+    padding: 24px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dialog-content h3 {
+    margin: 0 0 16px;
+    color: #333;
+}
+
+.dialog-content p {
+    margin: 0 0 20px;
+    color: #666;
+}
+
+.dialog-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.btn-confirm {
+    background: #1890ff;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-confirm:hover {
+    background: #40a9ff;
+}
+
+.btn-cancel {
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-cancel:hover {
+    background: #e0e0e0;
+}
+
+/* 错误提示样式 */
+.error-message {
+    color: #ff4d4f;
+    background: #fff2f0;
+    border: 1px solid #ffccc7;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    display: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .project-icons {
+        justify-content: center;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .dialog-content {
+        min-width: 300px;
+        margin: 20px;
+    }
+}

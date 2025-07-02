@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专家评审系统 - 评分管理</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/scoring-management.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="logo">专家评审系统</div>
+            <nav class="menu">
+                <a href="dashboard.html">控制台首页</a>
+                <a href="project-management.html">项目管理</a>
+                <a href="user-management.html">用户管理</a>
+                <a href="scoring-management.html" class="active">评分管理</a>
+                <a href="statistics.html">统计分析</a>
+            </nav>
+            <div class="user-info">
+                <span id="currentUser"></span>
+                <a href="#" id="logoutBtn">退出</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <h1>评分管理</h1>
+            </header>
+
+            <div class="scoring-content">
+                <!-- 添加错误提示元素 -->
+    <div class="error-tip" style="display: none;"></div>
+
+    <!-- 项目选择器 -->
+    <div class="project-selector">
+        <label for="projectSelect">选择项目：</label>
+        <select id="projectSelect">
+            <option value="">请选择项目</option>
+        </select>
+    </div>
+
+    <!-- 评分分布图表 -->
+    <div class="chart-container">
+        <div id="scoreChart"></div>
+    </div>
+
+    <!-- 评分统计卡片 -->
+    <div class="stats-card">
+        <h3>评分统计</h3>
+        <div id="scoreStats"></div>
+    </div>
+
+    <!-- 添加进度显示区域 -->
+<div class="progress-section">
+    <h3>评分进度</h3>
+    <div class="progress-info">
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="totalProgress"></div>
+        </div>
+        <div class="progress-text" id="progressText"></div>
+    </div>
+</div>
+
+    <!-- 评分详情表格 -->
+    <div class="score-details">
+        <h3>评分详情</h3>
+        <table class="score-table">
+            <thead>
+                <tr>
+                    <th>评审专家</th>
+                    <th>评分项</th>
+                    <th>评分</th>
+                    <th>提交时间</th>
+                </tr>
+            </thead>
+            <tbody id="scoreList"></tbody>
+        </table>
+    </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script src="../js/admin/scoring-management.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>   
+</body>
+</html>

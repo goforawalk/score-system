@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>专家评审系统 - 评审完成</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/scoring.css">
+    <style>
+        .review-summary {
+            background: #fff;
+            padding: 24px;
+            border-radius: 4px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .summary-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .summary-header h2 {
+            color: #52c41a;
+            margin-bottom: 8px;
+        }
+        
+        .task-info {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .project-scores {
+            margin-bottom: 24px;
+        }
+        
+        .project-score-item {
+            background: #fafafa;
+            border: 1px solid #f0f0f0;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .project-score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .project-name {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .score-details {
+            margin-top: 12px;
+        }
+        
+        .score-item-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .score-item-detail:last-child {
+            border-bottom: none;
+        }
+        
+        .total-score {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 4px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .total-score h3 {
+            color: #1890ff;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="scoring-layout">
+        <header class="header">
+            <div class="logo">专家评审系统</div>
+            <div class="user-info">
+                <span id="currentUser"></span>
+                <a href="#" id="logoutBtn">退出</a>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="review-summary">
+                <div class="summary-header">
+                    <h2>🎉 评审任务已完成</h2>
+                    <p>您已成功完成本次评审任务，感谢您的辛勤工作！</p>
+                </div>
+
+                <div class="task-info" id="taskInfo">
+                    <!-- 任务信息将通过JavaScript动态生成 -->
+                </div>
+
+                <div class="total-score" id="totalScore">
+                    <!-- 总评分将通过JavaScript动态生成 -->
+                </div>
+
+                <div class="project-scores" id="projectScores">
+                    <!-- 各项目评分情况将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script src="../js/expert/review-complete.js?v=1.2"></script>
+</body>
+</html> 

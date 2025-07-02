@@ -1,0 +1,93 @@
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f2f5;
+}
+
+.login-box {
+    width: 360px;
+    padding: 32px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.login-box h2 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: #1890ff;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+}
+
+/* 复选框组样式 */
+.checkbox-group {
+    margin-bottom: 20px;
+}
+
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 0 !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto !important;
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.checkbox-label:hover {
+    color: #1890ff;
+}
+
+/* 错误提示样式 */
+.error-message {
+    background: #fff2f0;
+    border: 1px solid #ffccc7;
+    color: #ff4d4f;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    font-size: 14px;
+    display: none;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 10px;
+    background: #1890ff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-login:hover {
+    background: #40a9ff;
+}
+
+.btn-login:disabled {
+    background: #d9d9d9;
+    cursor: not-allowed;
+}

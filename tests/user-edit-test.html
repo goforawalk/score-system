@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户编辑功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 100px;
+        }
+        .user-list {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        .user-item {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .user-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>用户编辑功能测试</h1>
+    
+    <div class="test-section">
+        <h2>测试用例 TC203：编辑用户功能测试</h2>
+        <p>测试编辑用户信息后保存功能，验证是否显示成功或失败提示。</p>
+        
+        <div class="form-group">
+            <label>选择用户:</label>
+            <select id="userSelect">
+                <option value="">请选择要编辑的用户</option>
+            </select>
+        </div>
+        
+        <div id="editForm" style="display: none;">
+            <h3>编辑用户信息</h3>
+            <div class="form-group">
+                <label>姓名:</label>
+                <input type="text" id="editName" placeholder="输入姓名">
+            </div>
+            <div class="form-group">
+                <label>用户名:</label>
+                <input type="text" id="editUsername" readonly>
+            </div>
+            <div class="form-group">
+                <label>密码:</label>
+                <input type="password" id="editPassword" placeholder="留空则不修改密码">
+            </div>
+            <div class="form-group">
+                <label>角色:</label>
+                <select id="editRole">
+                    <option value="admin">管理员</option>
+                    <option value="expert1">评审专家1</option>
+                    <option value="expert2">评审专家2</option>
+                    <option value="expert3">评审专家3</option>
+                    <option value="expert4">评审专家4</option>
+                    <option value="expert5">评审专家5</option>
+                    <option value="expert6">评审专家6</option>
+                    <option value="expert7">评审专家7</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>状态:</label>
+                <select id="editStatus">
+                    <option value="active">启用</option>
+                    <option value="inactive">禁用</option>
+                </select>
+            </div>
+            <button onclick="saveUserEdit()">保存修改</button>
+            <button onclick="cancelEdit()">取消</button>
+        </div>
+        
+        <button onclick="runTest()">运行测试</button>
+        <button onclick="clearResults()">清除结果</button>
+    </div>
+    
+    <div class="user-list">
+        <h3>当前用户列表</h3>
+        <div id="userListDisplay">
+            <!-- 用户列表将在这里显示 -->
+        </div>
+    </div>
+    
+    <div id="testResults"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // 模拟mockApi对象
+        const mockApi = {
+            users: [
+                { username: 'admin', name: '管理员', password: 'admin123', role: 'admin', status: 'active' },
+                { username: 'expert1', name: '评审专家1', password: 'expert123', role: 'expert1', status: 'active' },
+                { username: 'expert2', name: '评审专家2', password: 'expert123', role: 'expert2', status: 'active' }
+            ],
+
+            getUsers: function() {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve({
+                            success: true,
+                            data: this.users.map(user => ({ ...user, password: undefined }))
+                        });
+                    }, 100);
+                });
+            },
+
+            updateUser: function(username, userData) {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        const index = this.users.findIndex(u => u.username === username);
+                        if (index === -1) {
+                            reject({
+                                success: false,
+                                message: '用户不存在'
+                            });
+                            return;
+                        }
+                        
+                        // 更新用户信息
+                        this.users[index] = {
+                            ...this.users[index],
+                            ...userData
+                        };
+                        
+                        // 如果提供了新密码，更新密码
+                        if (userData.password) {
+                            this.users[index].password = userData.password;
+                        }
+                        
+                        console.log('更新后的用户列表:', this.users.map(u => ({ username: u.username, name: u.name, role: u.role, status: u.status })));
+                        
+                        resolve({
+                            success: true,
+                            data: {
+                                ...this.users[index],
+                                password: undefined
+                            }
+                        });
+                    }, 300);
+                });
+            }
+        };
+
+        // 模拟消息提示函数
+        function showMessage(message, type = 'info') {
+            addTestResult(`[${type.toUpperCase()}] ${message}`, type);
+        }
+
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        function loadUsers() {
+            mockApi.getUsers()
+                .then(response => {
+                    if (response.success) {
+                        displayUsers(response.data);
+                        populateUserSelect(response.data);
+                    }
+                })
+                .catch(error => {
+                    addTestResult(`加载用户列表失败: ${error.message}`, 'error');
+                });
+        }
+
+        function displayUsers(users) {
+            const $display = $('#userListDisplay');
+            $display.empty();
+            
+            users.forEach(user => {
+                $display.append(`
+                    <div class="user-item">
+                        <strong>${user.name}</strong> (${user.username}) - ${user.role} - ${user.status}
+                    </div>
+                `);
+            });
+        }
+
+        function populateUserSelect(users) {
+            const $select = $('#userSelect');
+            $select.find('option:not(:first)').remove();
+            
+            users.forEach(user => {
+                $select.append(`<option value="${user.username}">${user.name} (${user.username})</option>`);
+            });
+        }
+
+        function onUserSelect() {
+            const username = $('#userSelect').val();
+            if (username) {
+                const user = mockApi.users.find(u => u.username === username);
+                if (user) {
+                    $('#editName').val(user.name);
+                    $('#editUsername').val(user.username);
+                    $('#editPassword').val('');
+                    $('#editRole').val(user.role);
+                    $('#editStatus').val(user.status);
+                    $('#editForm').show();
+                }
+            } else {
+                $('#editForm').hide();
+            }
+        }
+
+        function saveUserEdit() {
+            const username = $('#editUsername').val();
+            const userData = {
+                name: $('#editName').val(),
+                username: $('#editUsername').val(),
+                role: $('#editRole').val(),
+                status: $('#editStatus').val()
+            };
+
+            const password = $('#editPassword').val();
+            if (password) {
+                userData.password = password;
+            }
+
+            addTestResult(`开始更新用户: ${username}`, 'info');
+            addTestResult(`更新数据: ${JSON.stringify(userData, null, 2)}`, 'info');
+
+            // 模拟按钮加载状态
+            const $btn = $('button').filter(function() { return $(this).text() === '保存修改'; });
+            const originalText = $btn.text();
+            $btn.prop('disabled', true).text('保存中...');
+
+            mockApi.updateUser(username, userData)
+                .then(response => {
+                    if (response.success) {
+                        showMessage('用户信息更新成功！', 'success');
+                        loadUsers();
+                    } else {
+                        showMessage(response.message || '保存失败', 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage(error.message || '保存失败', 'error');
+                })
+                .finally(() => {
+                    $btn.prop('disabled', false).text(originalText);
+                });
+        }
+
+        function cancelEdit() {
+            $('#editForm').hide();
+            $('#userSelect').val('');
+        }
+
+        async function runTest() {
+            clearResults();
+            addTestResult('开始运行测试用例 TC203：编辑用户功能测试', 'info');
+            
+            // 步骤1：加载用户列表
+            addTestResult('步骤1：加载用户列表...', 'info');
+            await loadUsers();
+            
+            // 步骤2：选择用户进行编辑
+            addTestResult('步骤2：请选择一个用户进行编辑测试', 'info');
+            addTestResult('测试要点：', 'info');
+            addTestResult('- 修改用户信息后点击保存', 'info');
+            addTestResult('- 验证是否显示"用户信息更新成功！"提示', 'info');
+            addTestResult('- 验证用户列表是否更新', 'info');
+            addTestResult('- 验证错误情况下的提示信息', 'info');
+        }
+
+        // 页面加载时初始化
+        $(document).ready(function() {
+            loadUsers();
+            
+            // 绑定用户选择事件
+            $('#userSelect').on('change', onUserSelect);
+            
+            addTestResult('测试页面已加载，请点击"运行测试"按钮开始测试', 'info');
+        });
+    </script>
+</body>
+</html> 

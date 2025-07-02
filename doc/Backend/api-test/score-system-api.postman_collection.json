@@ -1,0 +1,672 @@
+{
+	"info": {
+		"_postman_id": "b8a0e5f1-3a6c-4e69-b499-3c0f2b5a3d8d",
+		"name": "评分系统API测试",
+		"description": "用于测试评分系统后端接口的Postman集合",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "认证管理",
+			"item": [
+				{
+					"name": "用户登录",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData.success === true && jsonData.data.token) {",
+									"    pm.environment.set(\"auth_token\", jsonData.data.token);",
+									"    pm.test(\"登录成功，已设置认证令牌\", function () {",
+									"        pm.expect(jsonData.success).to.eql(true);",
+									"        pm.expect(jsonData.message).to.eql(\"登录成功\");",
+									"    });",
+									"} else {",
+									"    pm.test(\"登录失败\", function () {",
+									"        pm.expect(jsonData.success).to.eql(false);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"username\": \"admin\",\n\t\"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "用户登录接口，成功后获取JWT令牌"
+					},
+					"response": []
+				},
+				{
+					"name": "用户登出",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"登出成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"登出成功\");",
+									"});",
+									"pm.environment.unset(\"auth_token\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "用户登出接口"
+					},
+					"response": []
+				}
+			],
+			"description": "用户认证相关接口测试"
+		},
+		{
+			"name": "用户管理",
+			"item": [
+				{
+					"name": "获取用户列表",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"获取用户列表成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"获取用户列表成功\");",
+									"    pm.expect(jsonData.data).to.be.an(\"array\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "获取所有用户列表"
+					},
+					"response": []
+				},
+				{
+					"name": "创建/更新用户",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"保存用户成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"保存用户成功\");",
+									"    pm.expect(jsonData.data).to.have.property(\"username\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"username\": \"testuser\",\n\t\"password\": \"password123\",\n\t\"role\": \"EXPERT\",\n\t\"name\": \"测试用户\",\n\t\"email\": \"testuser@example.com\",\n\t\"department\": \"测试部门\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "创建或更新用户信息"
+					},
+					"response": []
+				},
+				{
+					"name": "删除用户",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"删除用户成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"删除用户成功\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/testuser",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"testuser"
+							]
+						},
+						"description": "删除指定用户名的用户"
+					},
+					"response": []
+				}
+			],
+			"description": "用户管理相关接口测试"
+		},
+		{
+			"name": "项目管理",
+			"item": [
+				{
+					"name": "获取项目列表",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"获取项目列表成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"获取项目列表成功\");",
+									"    pm.expect(jsonData.data).to.be.an(\"array\");",
+									"});",
+									"",
+									"if (jsonData.data && jsonData.data.length > 0) {",
+									"    pm.environment.set(\"project_id\", jsonData.data[0].id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"projects"
+							]
+						},
+						"description": "获取所有项目列表"
+					},
+					"response": []
+				},
+				{
+					"name": "创建/更新项目",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"保存项目成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"保存项目成功\");",
+									"    pm.expect(jsonData.data).to.have.property(\"id\");",
+									"});",
+									"",
+									"if (jsonData.data && jsonData.data.id) {",
+									"    pm.environment.set(\"project_id\", jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"测试项目\",\n\t\"description\": \"这是一个测试项目\",\n\t\"status\": \"ACTIVE\",\n\t\"displayOrder\": 1,\n\t\"scoreItems\": [\n\t\t{\n\t\t\t\"name\": \"技术创新\",\n\t\t\t\"description\": \"项目技术创新性评分\",\n\t\t\t\"weight\": 0.5,\n\t\t\t\"minScore\": 0,\n\t\t\t\"maxScore\": 10,\n\t\t\t\"role\": \"EXPERT\",\n\t\t\t\"displayOrder\": 1\n\t\t},\n\t\t{\n\t\t\t\"name\": \"市场潜力\",\n\t\t\t\"description\": \"项目市场潜力评分\",\n\t\t\t\"weight\": 0.5,\n\t\t\t\"minScore\": 0,\n\t\t\t\"maxScore\": 10,\n\t\t\t\"role\": \"EXPERT\",\n\t\t\t\"displayOrder\": 2\n\t\t}\n\t]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"projects"
+							]
+						},
+						"description": "创建或更新项目信息"
+					},
+					"response": []
+				},
+				{
+					"name": "删除项目",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"删除项目成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"删除项目成功\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/projects/{{project_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								"{{project_id}}"
+							]
+						},
+						"description": "删除指定ID的项目"
+					},
+					"response": []
+				}
+			],
+			"description": "项目管理相关接口测试"
+		},
+		{
+			"name": "任务管理",
+			"item": [
+				{
+					"name": "获取活动任务",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"获取活动任务成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"获取活动任务及项目成功\");",
+									"    pm.expect(jsonData.data).to.have.property(\"task\");",
+									"    pm.expect(jsonData.data).to.have.property(\"projectsInOrder\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/tasks/active",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								"active"
+							]
+						},
+						"description": "获取当前活动任务及其项目列表"
+					},
+					"response": []
+				}
+			],
+			"description": "任务管理相关接口测试"
+		},
+		{
+			"name": "评分管理",
+			"item": [
+				{
+					"name": "提交评分",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"提交评分成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"提交评分成功\");",
+									"    pm.expect(jsonData.data).to.have.property(\"id\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"projectId\": {{project_id}},\n\t\"username\": \"expert\",\n\t\"scores\": {\n\t\t\"1\": 8,\n\t\t\"2\": 9\n\t},\n\t\"totalScore\": 8.5,\n\t\"comments\": \"这是测试评语\",\n\t\"isDraft\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"scores"
+							]
+						},
+						"description": "提交项目评分"
+					},
+					"response": []
+				},
+				{
+					"name": "获取评分历史",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"获取评分历史成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"获取评分历史成功\");",
+									"    pm.expect(jsonData.data).to.be.an(\"array\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/scores/history?projectId={{project_id}}&username=expert",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"scores",
+								"history"
+							],
+							"query": [
+								{
+									"key": "projectId",
+									"value": "{{project_id}}"
+								},
+								{
+									"key": "username",
+									"value": "expert"
+								}
+							]
+						},
+						"description": "获取指定项目和用户的评分历史"
+					},
+					"response": []
+				}
+			],
+			"description": "评分管理相关接口测试"
+		},
+		{
+			"name": "统计管理",
+			"item": [
+				{
+					"name": "获取统计数据",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.test(\"获取统计数据成功\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.eql(\"获取统计数据成功\");",
+									"    pm.expect(jsonData.data).to.be.an(\"object\");",
+									"    pm.expect(jsonData.data).to.have.property(\"totalProjects\");",
+									"    pm.expect(jsonData.data).to.have.property(\"completedProjects\");",
+									"    pm.expect(jsonData.data).to.have.property(\"totalExperts\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/statistics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"statistics"
+							]
+						},
+						"description": "获取系统统计数据"
+					},
+					"response": []
+				}
+			],
+			"description": "统计管理相关接口测试"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string",
+			"description": "API基础URL"
+		}
+	]
+} 

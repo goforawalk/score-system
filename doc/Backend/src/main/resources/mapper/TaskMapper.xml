@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scoresystem.repository.TaskRepository">
+    <!-- 获取任务的专家列表 -->
+    <select id="getTaskExperts" resultType="string">
+        SELECT expert_username 
+        FROM task_experts 
+        WHERE task_id = #{taskId}
+    </select>    
+    <!-- 保存任务专家关系 -->
+    <insert id="saveTaskExpert">
+        INSERT INTO task_experts (task_id, expert_username) 
+        VALUES (#{taskId}, #{expertUsername})
+    </insert>    
+    <!-- 删除任务专家关系 -->
+    <delete id="deleteTaskExperts">
+        DELETE FROM task_experts 
+        WHERE task_id = #{taskId}
+    </delete>    
+    <!-- 保存任务项目关系 -->
+    <insert id="saveTaskProject">
+        INSERT INTO task_projects (task_id, project_id) 
+        VALUES (#{taskId}, #{projectId})
+    </insert>   
+    <!-- 删除任务项目关系 -->
+    <delete id="deleteTaskProjects">
+        DELETE FROM task_projects
+        WHERE task_id = #{taskId}
+    </delete>    
+</mapper>
+ 

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评分范围测试</title>
+</head>
+<body>
+    <h1>评分范围测试</h1>
+    <div id="testResults"></div>
+
+    <script src="../js/api/mock.js"></script>
+    <script>
+        // 模拟用户登录
+        localStorage.setItem('userInfo', JSON.stringify({
+            username: 'expert1',
+            role: 'expert'
+        }));
+
+        async function testScoreRange() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '<h2>测试结果：</h2>';
+
+            try {
+                // 测试 getActiveTaskWithProjects
+                const response = await mockApi.getActiveTaskWithProjects();
+                console.log('API响应:', response);
+                
+                if (response.success && response.data.projectsInOrder.length > 0) {
+                    const project = response.data.projectsInOrder[0];
+                    console.log('项目数据:', project);
+                    console.log('评分项:', project.scoreItems);
+                    
+                    results.innerHTML += '<h3>项目评分项：</h3>';
+                    project.scoreItems.forEach((item, index) => {
+                        results.innerHTML += `
+                            <p><strong>${item.name}:</strong> minScore=${item.minScore}, maxScore=${item.maxScore}</p>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('测试失败:', error);
+                results.innerHTML += `<p style="color: red;">❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        window.addEventListener('load', testScoreRange);
+    </script>
+</body>
+</html> 

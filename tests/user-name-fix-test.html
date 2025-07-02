@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户姓名字段修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .user-list {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .user-item {
+            padding: 5px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .user-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>用户姓名字段修复测试</h1>
+        <p>测试用例TC202：新增用户功能中name字段的正确处理</p>
+
+        <div class="test-section">
+            <div class="test-title">测试1：验证初始用户数据包含name字段</div>
+            <button onclick="testInitialUsers()">运行测试</button>
+            <div id="test1-result"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">测试2：新增用户时name字段的处理</div>
+            <button onclick="testAddUser()">运行测试</button>
+            <div id="test2-result"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">测试3：编辑用户时name字段的显示</div>
+            <button onclick="testEditUser()">运行测试</button>
+            <div id="test3-result"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">测试4：导出用户数据包含name字段</div>
+            <button onclick="testExportUsers()">运行测试</button>
+            <div id="test4-result"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">当前用户列表</div>
+            <button onclick="refreshUserList()">刷新列表</button>
+            <div id="user-list" class="user-list"></div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script>
+        // 测试1：验证初始用户数据包含name字段
+        function testInitialUsers() {
+            const resultDiv = $('#test1-result');
+            resultDiv.html('<div class="info">正在检查初始用户数据...</div>');
+
+            mockApi.getUsers()
+                .then(response => {
+                    if (response.success) {
+                        const users = response.data;
+                        const usersWithName = users.filter(user => user.name && user.name.trim() !== '');
+                        const usersWithoutName = users.filter(user => !user.name || user.name.trim() === '');
+
+                        let result = '<div class="success">';
+                        result += `<p>✅ 总用户数: ${users.length}</p>`;
+                        result += `<p>✅ 包含name字段的用户: ${usersWithName.length}</p>`;
+                        result += `<p>❌ 缺少name字段的用户: ${usersWithoutName.length}</p>`;
+
+                        if (usersWithoutName.length > 0) {
+                            result += '<p>缺少name字段的用户:</p><ul>';
+                            usersWithoutName.forEach(user => {
+                                result += `<li>${user.username} (${user.role})</li>`;
+                            });
+                            result += '</ul>';
+                        }
+
+                        result += '</div>';
+                        resultDiv.html(result);
+                    } else {
+                        resultDiv.html('<div class="error">❌ 获取用户数据失败</div>');
+                    }
+                })
+                .catch(error => {
+                    resultDiv.html(`<div class="error">❌ 测试失败: ${error.message}</div>`);
+                });
+        }
+
+        // 测试2：新增用户时name字段的处理
+        function testAddUser() {
+            const resultDiv = $('#test2-result');
+            resultDiv.html('<div class="info">正在测试新增用户...</div>');
+
+            const testUser = {
+                name: '测试用户',
+                username: 'testuser' + Date.now(),
+                password: 'test123',
+                role: 'expert1',
+                status: 'active'
+            };
+
+            mockApi.addUser(testUser)
+                .then(response => {
+                    if (response.success) {
+                        // 验证新增的用户数据
+                        return mockApi.getUsers();
+                    } else {
+                        throw new Error('新增用户失败');
+                    }
+                })
+                .then(response => {
+                    if (response.success) {
+                        const newUser = response.data.find(u => u.username === testUser.username);
+                        if (newUser && newUser.name === testUser.name) {
+                            resultDiv.html(`
+                                <div class="success">
+                                    ✅ 新增用户成功，name字段正确保存<br>
+                                    用户名: ${newUser.username}<br>
+                                    姓名: ${newUser.name}<br>
+                                    角色: ${newUser.role}
+                                </div>
+                            `);
+                        } else {
+                            resultDiv.html(`
+                                <div class="error">
+                                    ❌ 新增用户成功，但name字段不正确<br>
+                                    期望: ${testUser.name}<br>
+                                    实际: ${newUser ? newUser.name : 'undefined'}
+                                </div>
+                            `);
+                        }
+                    } else {
+                        resultDiv.html('<div class="error">❌ 获取用户数据失败</div>');
+                    }
+                })
+                .catch(error => {
+                    resultDiv.html(`<div class="error">❌ 测试失败: ${error.message}</div>`);
+                });
+        }
+
+        // 测试3：编辑用户时name字段的显示
+        function testEditUser() {
+            const resultDiv = $('#test3-result');
+            resultDiv.html('<div class="info">正在测试编辑用户...</div>');
+
+            // 先获取一个现有用户
+            mockApi.getUsers()
+                .then(response => {
+                    if (response.success && response.data.length > 0) {
+                        const user = response.data[0];
+                        const updatedName = '更新姓名_' + Date.now();
+                        
+                        return mockApi.updateUser(user.username, {
+                            name: updatedName,
+                            role: user.role,
+                            status: user.status
+                        });
+                    } else {
+                        throw new Error('没有可编辑的用户');
+                    }
+                })
+                .then(response => {
+                    if (response.success) {
+                        return mockApi.getUsers();
+                    } else {
+                        throw new Error('更新用户失败');
+                    }
+                })
+                .then(response => {
+                    if (response.success) {
+                        const updatedUser = response.data.find(u => u.username === response.data[0].username);
+                        if (updatedUser && updatedUser.name && updatedUser.name.includes('更新姓名_')) {
+                            resultDiv.html(`
+                                <div class="success">
+                                    ✅ 编辑用户成功，name字段正确更新<br>
+                                    用户名: ${updatedUser.username}<br>
+                                    更新后姓名: ${updatedUser.name}
+                                </div>
+                            `);
+                        } else {
+                            resultDiv.html(`
+                                <div class="error">
+                                    ❌ 编辑用户成功，但name字段更新不正确<br>
+                                    实际姓名: ${updatedUser ? updatedUser.name : 'undefined'}
+                                </div>
+                            `);
+                        }
+                    } else {
+                        resultDiv.html('<div class="error">❌ 获取用户数据失败</div>');
+                    }
+                })
+                .catch(error => {
+                    resultDiv.html(`<div class="error">❌ 测试失败: ${error.message}</div>`);
+                });
+        }
+
+        // 测试4：导出用户数据包含name字段
+        function testExportUsers() {
+            const resultDiv = $('#test4-result');
+            resultDiv.html('<div class="info">正在测试导出用户数据...</div>');
+
+            mockApi.getUsers()
+                .then(response => {
+                    if (response.success) {
+                        const users = response.data;
+                        const exportData = users.map(user => ({
+                            name: user.name,
+                            username: user.username,
+                            role: user.role,
+                            status: user.status
+                        }));
+
+                        const usersWithName = exportData.filter(user => user.name && user.name.trim() !== '');
+                        const usersWithoutName = exportData.filter(user => !user.name || user.name.trim() === '');
+
+                        let result = '<div class="success">';
+                        result += `<p>✅ 导出数据总用户数: ${exportData.length}</p>`;
+                        result += `<p>✅ 包含name字段的用户: ${usersWithName.length}</p>`;
+                        result += `<p>❌ 缺少name字段的用户: ${usersWithoutName.length}</p>`;
+
+                        if (usersWithoutName.length > 0) {
+                            result += '<p>缺少name字段的用户:</p><ul>';
+                            usersWithoutName.forEach(user => {
+                                result += `<li>${user.username} (${user.role})</li>`;
+                            });
+                            result += '</ul>';
+                        }
+
+                        result += '<p>导出数据示例:</p>';
+                        result += '<pre>' + JSON.stringify(exportData.slice(0, 2), null, 2) + '</pre>';
+                        result += '</div>';
+
+                        resultDiv.html(result);
+                    } else {
+                        resultDiv.html('<div class="error">❌ 获取用户数据失败</div>');
+                    }
+                })
+                .catch(error => {
+                    resultDiv.html(`<div class="error">❌ 测试失败: ${error.message}</div>`);
+                });
+        }
+
+        // 刷新用户列表
+        function refreshUserList() {
+            const listDiv = $('#user-list');
+            listDiv.html('<div class="info">正在加载用户列表...</div>');
+
+            mockApi.getUsers()
+                .then(response => {
+                    if (response.success) {
+                        const users = response.data;
+                        let html = '';
+                        
+                        users.forEach(user => {
+                            const nameDisplay = user.name && user.name.trim() !== '' ? user.name : '<span style="color: red;">undefined</span>';
+                            html += `
+                                <div class="user-item">
+                                    <strong>姓名:</strong> ${nameDisplay} | 
+                                    <strong>用户名:</strong> ${user.username} | 
+                                    <strong>角色:</strong> ${user.role} | 
+                                    <strong>状态:</strong> ${user.status}
+                                </div>
+                            `;
+                        });
+
+                        listDiv.html(html);
+                    } else {
+                        listDiv.html('<div class="error">❌ 获取用户数据失败</div>');
+                    }
+                })
+                .catch(error => {
+                    listDiv.html(`<div class="error">❌ 加载失败: ${error.message}</div>`);
+                });
+        }
+
+        // 页面加载时自动刷新用户列表
+        $(document).ready(function() {
+            refreshUserList();
+        });
+    </script>
+</body>
+</html> 

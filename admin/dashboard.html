@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专家评审系统 - 管理控制台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="logo">专家评审系统</div>
+            <nav class="menu">
+                <a href="dashboard.html" class="active">控制台首页</a>
+                <a href="project-management.html">项目管理</a>
+                <a href="user-management.html">用户管理</a>
+                <a href="statistics.html">统计分析</a>
+            </nav>
+            <div class="user-info">
+                <span id="currentUser"></span>
+                <a href="#" id="logoutBtn">退出</a>
+            </div>
+        </aside>
+        <main class="main-content">
+            <header class="header">
+                <h1>控制台首页</h1>
+            </header>
+            <div class="dashboard-content">
+                <div class="stats-cards">
+                    <div class="card">
+                        <h3>项目总数</h3>
+                        <p id="totalProjects">0</p>
+                    </div>
+                    <div class="card">
+                        <h3>进行中项目</h3>
+                        <p id="activeProjects">0</p>
+                    </div>
+                    <div class="card">
+                        <h3>评审专家数</h3>
+                        <p id="totalExperts">0</p>
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <button onclick="location.href='project-management.html'" class="btn">新建项目</button>
+                    <button onclick="location.href='statistics.html'" class="btn">查看统计</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/utils/error-handler.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script src="../js/api/env.js"></script>
+    <script src="../js/api/config.js"></script>
+    <script src="../js/api/http.js"></script>
+    <script src="../js/api/api-service.js"></script>
+    <script src="../js/api/api-adapter.js"></script>
+    <script src="../js/admin/dashboard.js"></script>
+</body>
+</html>

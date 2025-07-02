@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目创建功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-step {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-link {
+            display: inline-block;
+            margin: 10px 0;
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .test-link:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>项目创建功能测试</h1>
+        
+        <div class="test-step">
+            <h3>测试用例 TC102：新建项目功能</h3>
+            <p><strong>测试目标：</strong>验证能够成功创建新项目并配置评分项</p>
+            
+            <div class="test-result info">
+                <h4>修复内容：</h4>
+                <ul>
+                    <li>✅ 删除了重复的handleProjectSubmit函数</li>
+                    <li>✅ 修正了添加评分项按钮的事件绑定</li>
+                    <li>✅ 修正了addScoreItemRow函数，确保评分项添加到正确的组容器</li>
+                    <li>✅ 删除了重复的事件绑定代码</li>
+                    <li>✅ 添加了模板选择事件绑定</li>
+                    <li>✅ 修正了表单重置逻辑</li>
+                    <li>✅ 修复了mock.js中的addProject函数，支持新的scoreGroups数据结构</li>
+                    <li>✅ 添加了向后兼容性，同时支持scoreItems和scoreGroups两种数据结构</li>
+                    <li>✅ 修复了getProjectProgress函数，支持新的数据结构</li>
+                    <li>✅ 修复了getProjectScores函数，支持新的数据结构</li>
+                    <li>✅ 修复了getStatistics函数，支持新的数据结构</li>
+                </ul>
+            </div>
+            
+            <div class="test-result success">
+                <h4>测试步骤：</h4>
+                <ol>
+                    <li>点击下方链接打开项目管理页面</li>
+                    <li>点击"新建项目"按钮</li>
+                    <li>选择项目模板（如"初赛评审模板"）</li>
+                    <li>填写项目基本信息</li>
+                    <li>添加评分项到各组</li>
+                    <li>点击"保存"按钮</li>
+                    <li>验证项目是否成功创建</li>
+                </ol>
+            </div>
+            
+            <a href="../admin/project-management.html" class="test-link" target="_blank">
+                打开项目管理页面进行测试
+            </a>
+            
+            <div class="test-result info">
+                <h4>预期结果：</h4>
+                <ul>
+                    <li>✅ 项目创建对话框正常显示</li>
+                    <li>✅ 模板选择功能正常工作</li>
+                    <li>✅ 能够成功添加三组评分项</li>
+                    <li>✅ 评分项与专家角色正确关联</li>
+                    <li>✅ 项目成功保存并显示在列表中</li>
+                    <li>✅ 不再出现"请至少添加一个评分项"错误</li>
+                    <li>✅ 不再出现"Cannot read properties of undefined (reading 'map')"错误</li>
+                    <li>✅ API函数正确处理新的scoreGroups数据结构</li>
+                    <li>✅ 向后兼容性确保旧数据结构仍能正常工作</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="test-step">
+            <h3>测试数据</h3>
+            <div class="test-result info">
+                <p><strong>新项目信息：</strong></p>
+                <ul>
+                    <li>成果名称：人工智能医疗诊断系统</li>
+                    <li>单位：清华大学医学院</li>
+                    <li>团队代表：王五</li>
+                </ul>
+                
+                <p><strong>评分项配置：</strong></p>
+                <ul>
+                    <li>初赛评分项：技术可行性、创新性</li>
+                    <li>复赛评分项：应用价值、市场前景</li>
+                    <li>决赛评分项：经济效益、社会影响</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="test-step">
+            <h3>功能验证清单</h3>
+            <div class="test-result info">
+                <ul>
+                    <li>✅ 项目创建对话框显示正常</li>
+                    <li>✅ 模板选择对话框显示正常</li>
+                    <li>✅ 添加评分项按钮响应正常</li>
+                    <li>✅ 评分项表单验证正常</li>
+                    <li>✅ 项目保存功能正常</li>
+                    <li>✅ 项目列表更新正常</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="test-step">
+            <h3>已知问题修复</h3>
+            <div class="test-result success">
+                <p><strong>问题1：</strong>完成所有测试步骤后，点击"保存"按钮。界面弹出提示框"请至少添加一个评分项"</p>
+                <p><strong>原因：</strong>代码中存在重复的函数定义和错误的事件绑定</p>
+                <p><strong>解决方案：</strong>清理重复代码，修正事件绑定逻辑</p>
+                <p><strong>状态：</strong>✅ 已修复</p>
+            </div>
+            <div class="test-result success">
+                <p><strong>问题2：</strong>点击"保存"按钮后页面没有反应，浏览器控制台报错：Cannot read properties of undefined (reading 'map')</p>
+                <p><strong>原因：</strong>mock.js中的addProject函数仍期望旧的scoreItems数据结构，但前端发送的是新的scoreGroups结构</p>
+                <p><strong>解决方案：</strong>修复API函数，支持新的数据结构并添加向后兼容性</p>
+                <p><strong>状态：</strong>✅ 已修复</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

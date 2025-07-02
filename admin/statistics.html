@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专家评审系统 - 统计分析</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/statistics.css">
+    <!-- 引入 ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+    <!-- 添加 Excel 和 PDF 导出相关库 -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</head>
+<body>
+    <!-- 添加加载遮罩 -->
+    <div class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- 添加导出进度提示 -->
+    <div class="export-progress">
+        <div class="progress-text">正在导出...</div>
+        <div class="progress-bar">
+            <div class="progress-bar-inner" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="logo">专家评审系统</div>
+            <nav class="menu">
+                <a href="dashboard.html">控制台首页</a>
+                <a href="project-management.html">项目管理</a>
+                <a href="user-management.html">用户管理</a>
+                <a href="scoring-management.html">评分管理</a>
+                <a href="statistics.html" class="active">统计分析</a>
+            </nav>
+            <div class="user-info">
+                <span id="currentUser"></span>
+                <a href="#" id="logoutBtn">退出</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <h1>统计分析</h1>
+                <div class="header-actions">
+                    <button id="exportExcel" class="btn">导出Excel</button>
+                    <button id="exportPDF" class="btn">生成PDF报告</button>
+                </div>
+            </header>
+
+            <div class="statistics-content">
+                <!-- 项目选择器 -->
+                <div class="project-selector">
+                    <label for="projectSelect">选择项目：</label>
+                    <select id="projectSelect">
+                        <option value="">请选择项目</option>
+                    </select>
+                </div>
+
+                <!-- 统计图表区域 -->
+                <div class="charts-container">
+                    <!-- 项目得分排名 -->
+                    <div class="chart-card">
+                        <h3>项目得分排名</h3>
+                        <!-- 添加图表操作按钮 -->
+                        <div class="chart-actions">
+                            <button class="chart-action-btn" title="刷新数据">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                            <button class="chart-action-btn" title="下载图表">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                        <div id="rankingChart" class="chart"></div>
+                    </div>
+
+                    <!-- 评分进度统计 -->
+                    <div class="chart-card">
+                        <h3>评分进度统计</h3>
+                        <div id="progressChart" class="chart"></div>
+                    </div>
+
+                    <!-- 评委评分分布 -->
+                    <div class="chart-card">
+                        <h3>评委评分分布</h3>
+                        <div id="distributionChart" class="chart"></div>
+                    </div>
+
+                    <!-- 评分项得分对比 -->
+                    <div class="chart-card">
+                        <h3>评分项得分对比</h3>
+                        <div id="comparisonChart" class="chart"></div>
+                    </div>
+                </div>
+
+                <!-- 详细数据表格 -->
+                <div class="data-table-section">
+                    <h3>详细数据</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>项目名称</th>
+                                <th>总分</th>
+                                <th>评分项</th>
+                                <th>平均分</th>
+                                <th>最高分</th>
+                                <th>最低分</th>
+                                <th>评分完成率</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statisticsData">
+                            <!-- 数据将通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/utils/error-handler.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script src="../js/api/env.js"></script>
+    <script src="../js/api/config.js"></script>
+    <script src="../js/api/http.js"></script>
+    <script src="../js/api/api-service.js"></script>
+    <script src="../js/api/api-adapter.js"></script>
+    <script src="../js/admin/statistics.js"></script>
+</body>
+</html>
