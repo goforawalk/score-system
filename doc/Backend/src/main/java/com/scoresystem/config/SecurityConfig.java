@@ -85,7 +85,7 @@ public class SecurityConfig {
                 // 允许访问项目列表和其他公共API
                 .antMatchers("/projects", "/projects/**").permitAll()
                 .antMatchers("/users", "/users/**").permitAll()
-                .antMatchers("/tasks", "/tasks/active").permitAll()
+                .antMatchers("/tasks","/tasks/**", "/tasks/active").permitAll()
                 .antMatchers("/statistics/**").permitAll()
              // 允许访问评分API
                 .antMatchers("/scores", "/scores/**").permitAll()

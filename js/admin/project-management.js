@@ -135,6 +135,7 @@ function loadProjects() {
     api.getProjects()
         .then(response => {
             if (response.success) {
+                window.allProjects = response.data; // 缓存所有项目
                 renderProjects(response.data);
             }
         })
@@ -989,8 +990,10 @@ async function openTaskDialog(task = null, readOnly = false) {
                 $(`input[name="scoreGroupType"][value="${task.scoreGroupType}"]`).prop('checked', true);
                 $('#taskForm').data('taskId', task.id);
             } else {
-                // 设置默认值
+                // 新建任务时，彻底清空所有输入框和数据
+                $('#taskForm')[0].reset();
                 $('#taskForm').removeData('taskId');
+                $('#taskCategory').val('');
                 $('input[name="taskType"][value="1"]').prop('checked', true);
                 $('input[name="scoreGroupType"][value="preliminary"]').prop('checked', true);
             }
@@ -1165,6 +1168,17 @@ function updateProjectOrder() {
     });
 }
 
+// 时间格式化函数，放在handleTaskSubmit前
+function formatDateToYMDHMS(date) {
+    const pad = n => n < 10 ? '0' + n : n;
+    return date.getFullYear() + '-' +
+        pad(date.getMonth() + 1) + '-' +
+        pad(date.getDate()) + ' ' +
+        pad(date.getHours()) + ':' +
+        pad(date.getMinutes()) + ':' +
+        pad(date.getSeconds());
+}
+
 // 修改任务提交处理函数
 function handleTaskSubmit(e) {
     e.preventDefault();
@@ -1189,7 +1203,12 @@ function handleTaskSubmit(e) {
 
     const taskType = parseInt($('input[name="taskType"]:checked').val());
     const taskCategory = $('#taskCategory').val().trim();
-    const scoreGroupType = $('input[name="scoreGroupType"]:checked').val();
+    const scoreGroupTypeRaw = $('input[name="scoreGroupType"]:checked').val();
+    let scoreGroupType = scoreGroupTypeRaw;
+    if (scoreGroupTypeRaw === 'preliminary') scoreGroupType = 1;
+    else if (scoreGroupTypeRaw === 'semifinal') scoreGroupType = 2;
+    else if (scoreGroupTypeRaw === 'final') scoreGroupType = 3;
+    else scoreGroupType = 1;
     const taskId = $('#taskForm').data('taskId');
 
     if (!taskCategory) {
@@ -1202,19 +1221,22 @@ function handleTaskSubmit(e) {
         return;
     }
 
+    // 获取完整项目对象数组
+    const selectedProjects = (window.allProjects || []).filter(p => projectIdsInOrder.includes(p.id));
+
     // 构建正确的任务数据格式
     const taskData = {
         category: taskCategory,
         taskType: taskType,
         scoreGroupType: scoreGroupType,
-        status: 'pending', // 新建任务默认为待启用状态
-        projects: projectIdsInOrder.map(projectId => ({ id: projectId })),
+        status: 'pending',
+        projects: selectedProjects, // 传递完整对象数组
         experts: expertUsernames
     };
 
-    // 如果是新建任务，设置开始时间为当前时间
+    // 如果是新建任务，设置开始时间为当前时间（格式：yyyy-MM-dd HH:mm:ss）
     if (!taskId) {
-        taskData.startTime = new Date().toISOString();
+        taskData.startTime = formatDateToYMDHMS(new Date());
     }
 
     const apiCall = taskId ? 
@@ -1458,4 +1480,27 @@ function restoreProject(projectId) {
     }).catch(error => {
         alert(error.message || '还原失败');
     });
+}
+
+// 启用评审任务函数
+function enableTask(taskId) {
+    if (!taskId) {
+        alert('任务ID无效');
+        return;
+    }
+    if (!confirm('确定要启用该评审任务吗？')) {
+        return;
+    }
+    api.enableReviewTask(taskId)
+        .then(response => {
+            if (response.success) {
+                alert('任务已启用');
+                loadTasks();
+            } else {
+                alert(response.message || '启用任务失败');
+            }
+        })
+        .catch(error => {
+            alert(error.message || '启用任务失败');
+        });
 }
