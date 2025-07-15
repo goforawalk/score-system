@@ -3,6 +3,7 @@ package com.scoresystem.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scoresystem.dto.ScoreSystemModels.ProjectDTO;
 import com.scoresystem.dto.ScoreSystemModels.ScoreDTO;
+import com.scoresystem.dto.ScoreSystemModels.ScoreItemDTO;
 import com.scoresystem.dto.ScoreSystemModels.TaskDTO;
 import com.scoresystem.service.ProjectService;
 import com.scoresystem.service.ScoreService;
@@ -151,17 +152,17 @@ public class ScoreSystemControllerExtensionTest {
     @DisplayName("测试获取项目评分进度接口")
     public void testGetProjectProgress() throws Exception {
         Map<String, Object> progress = new HashMap<>();
-        progress.put("total", 5);
-        progress.put("completed", 3);
-        progress.put("percentage", 60);
+        progress.put("totalExperts", 5);
+        progress.put("completedExperts", 3);
+        progress.put("completionPercentage", 60.0);
 
-        when(projectService.getProjectProgress(1L)).thenReturn(progress);
+        when(projectService.getProjectProgress(1L, null)).thenReturn(progress);
 
         mockMvc.perform(get("/projects/1/progress"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("获取项目评分进度成功"))
-                .andExpect(jsonPath("$.data.percentage").value(60));
+                .andExpect(jsonPath("$.data.completionPercentage").value(60.0));
     }
 
     /**
@@ -170,30 +171,96 @@ public class ScoreSystemControllerExtensionTest {
     @Test
     @DisplayName("测试获取项目评分详情接口")
     public void testGetProjectScores() throws Exception {
-        List<ScoreDTO> scores = Collections.singletonList(testScore);
-        when(scoreService.getScoresByProject(1L)).thenReturn(scores);
+        Map<String, Object> projectScores = new HashMap<>();
+        projectScores.put("project", testProject);
+        
+        Map<String, Object> scoreStatistics = new HashMap<>();
+        scoreStatistics.put("totalScores", 5);
+        scoreStatistics.put("averageScore", 85.5);
+        projectScores.put("scoreStatistics", scoreStatistics);
+        
+        Map<String, Object> scoreProgress = new HashMap<>();
+        scoreProgress.put("totalExperts", 10);
+        scoreProgress.put("completedExperts", 5);
+        scoreProgress.put("completionPercentage", 50.0);
+        projectScores.put("scoreProgress", scoreProgress);
+        
+        when(projectService.getProjectScores(1L, null)).thenReturn(projectScores);
 
         mockMvc.perform(get("/projects/1/scores"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("获取项目评分详情成功"))
-                .andExpect(jsonPath("$.data[0].totalScore").value(85.5));
+                .andExpect(jsonPath("$.data.project.id").value(1))
+                .andExpect(jsonPath("$.data.scoreStatistics.totalScores").value(5))
+                .andExpect(jsonPath("$.data.scoreProgress.completionPercentage").value(50.0));
     }
 
     /**
-     * 测试获取任务列表接口
+     * 测试获取项目评分详情接口（指定任务）
      */
     @Test
-    @DisplayName("测试获取任务列表接口")
-    public void testGetTasks() throws Exception {
-        List<TaskDTO> tasks = Collections.singletonList(testTask);
-        when(taskService.getAllTasks()).thenReturn(tasks);
+    @DisplayName("测试获取项目评分详情接口（指定任务）")
+    public void testGetProjectScores_WithTaskId() throws Exception {
+        Map<String, Object> projectScores = new HashMap<>();
+        projectScores.put("project", testProject);
+        Map<String, Object> scoreStatistics = new HashMap<>();
+        scoreStatistics.put("totalScores", 3);
+        scoreStatistics.put("averageScore", 88.0);
+        projectScores.put("scoreStatistics", scoreStatistics);
+        Map<String, Object> scoreProgress = new HashMap<>();
+        scoreProgress.put("totalExperts", 8);
+        scoreProgress.put("completedExperts", 3);
+        scoreProgress.put("completionPercentage", 37.5);
+        projectScores.put("scoreProgress", scoreProgress);
+        
+        when(projectService.getProjectScores(1L, 2L)).thenReturn(projectScores);
 
-        mockMvc.perform(get("/tasks"))
+        mockMvc.perform(get("/projects/1/scores")
+                .param("taskId", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("获取任务列表成功"))
-                .andExpect(jsonPath("$.data[0].id").value(1));
+                .andExpect(jsonPath("$.message").value("获取项目评分详情成功"))
+                .andExpect(jsonPath("$.data.scoreStatistics.totalScores").value(3))
+                .andExpect(jsonPath("$.data.scoreStatistics.averageScore").value(88.0));
+    }
+
+    /**
+     * 测试获取项目评分项接口
+     */
+    @Test
+    @DisplayName("测试获取项目评分项接口")
+    public void testGetProjectScoreItems() throws Exception {
+        ScoreItemDTO item1 = new ScoreItemDTO();
+        item1.setId(1L);
+        item1.setName("评分项1");
+        item1.setDescription("描述1");
+        item1.setMaxScore(100);
+        item1.setGroupType("0");
+        item1.setWeight(1.0);
+        item1.setDisplayOrder(1);
+
+        ScoreItemDTO item2 = new ScoreItemDTO();
+        item2.setId(2L);
+        item2.setName("评分项2");
+        item2.setDescription("描述2");
+        item2.setMaxScore(100);
+        item2.setGroupType("0");
+        item2.setWeight(1.0);
+        item2.setDisplayOrder(2);
+
+        List<ScoreItemDTO> scoreItems = Arrays.asList(item1, item2);
+        
+        when(projectService.getScoreItemsByProjectId(1L)).thenReturn(scoreItems);
+
+        mockMvc.perform(get("/projects/1/score-items"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("获取项目评分项成功"))
+                .andExpect(jsonPath("$.data[0].id").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("评分项1"))
+                .andExpect(jsonPath("$.data[1].id").value(2))
+                .andExpect(jsonPath("$.data[1].name").value("评分项2"));
     }
 
     /**

@@ -5,6 +5,7 @@ import com.scoresystem.model.Project;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Delete;
 
 import java.util.Date;
 import java.util.List;
@@ -69,4 +70,10 @@ public interface ProjectRepository extends BaseMapper<Project> {
      */
     @Select("SELECT COUNT(*) FROM projects WHERE create_time BETWEEN #{startDate} AND #{endDate}")
     int countByCreateTimeBetween(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    
+    /**
+     * 清空所有项目数据
+     */
+    @Delete("DELETE FROM projects")
+    void deleteAllProjects();
 }

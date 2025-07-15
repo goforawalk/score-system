@@ -64,7 +64,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
      */
     @Override
     public List<ProjectDTO> getAllProjects() {
-    List<Project> projects = projectRepository.findAllByOrderByDisplayOrderAsc();
+        List<Project> projects = projectRepository.findAllByOrderByDisplayOrderAsc();
     List<ProjectDTO> projectDTOs = new ArrayList<>();
     for (Project project : projects) {
         // 查询并设置评分项
@@ -104,7 +104,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
         projectDTOs.add(dto);
     }
     return projectDTOs;
-}
+    }
     
     /**
      * 根据ID获取项目
@@ -322,13 +322,26 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
     @Override
     public List<ProjectDTO> getProjectsByTask(Long taskId) {
         List<Project> projects = projectRepository.findByTaskIdOrderByDisplayOrderAsc(taskId);
-        return projects.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        List<ProjectDTO> projectDTOs = new ArrayList<>();
+        for (Project project : projects) {
+            // 新增：查找并设置评分项
+            List<ScoreItem> scoreItems = scoreItemRepository.findByProjectId(project.getId());
+            for (ScoreItem scoreItem : scoreItems) {
+                List<String> roles = scoreItemRoleRepository.findRolesByScoreItemId(scoreItem.getId());
+                scoreItem.setRoles(roles);
+                if (roles != null && !roles.isEmpty()) {
+                    scoreItem.setRole(roles.get(0));
+                }
+            }
+            project.setScoreItems(scoreItems);
+            projectDTOs.add(convertToDTO(project));
+        }
+        return projectDTOs;
     }
     
     /**
-     * 根据用户角色获取项目评分项
+     * 根据用户角色获取评分项
+     * 只返回用户角色有权限查看的评分项，确保安全性
      */
     @Override
     public List<ScoreItemDTO> getScoreItemsByUserRole(Long projectId, String username) {
@@ -337,17 +350,31 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
         if (user == null) {
             return new ArrayList<>();
         }
-        
         // 防止空指针异常
         String role = user.getRole() != null ? user.getRole().toUpperCase() : "USER";
-        
         // 查询与用户角色相关的评分项
         List<ScoreItem> scoreItems = scoreItemRepository.findByProjectIdAndRole(projectId, role);
-        
-        // 如果通过角色查询不到评分项，则获取所有评分项
+        // 严格按角色过滤，如果用户角色没有对应的评分项，返回空列表
         if (scoreItems == null || scoreItems.isEmpty()) {
-            scoreItems = scoreItemRepository.findByProjectId(projectId);
+            return new ArrayList<>();
         }
+        // 为每个评分项设置角色信息
+        for (ScoreItem scoreItem : scoreItems) {
+            List<String> roles = scoreItemRoleRepository.findRolesByScoreItemId(scoreItem.getId());
+            scoreItem.setRoles(roles);
+            scoreItem.setRole(role); // 设置当前用户的角色
+        }
+        return scoreItems.stream()
+                .map(this::convertToScoreItemDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 根据项目ID获取评分项
+     */
+    @Override
+    public List<ScoreItemDTO> getScoreItemsByProjectId(Long projectId) {
+        List<ScoreItem> scoreItems = scoreItemRepository.findByProjectId(projectId);
         
         if (scoreItems == null) {
             return new ArrayList<>();
@@ -357,7 +384,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
         for (ScoreItem scoreItem : scoreItems) {
             List<String> roles = scoreItemRoleRepository.findRolesByScoreItemId(scoreItem.getId());
             scoreItem.setRoles(roles);
-            scoreItem.setRole(role); // 设置当前用户的角色
+            if (roles != null && !roles.isEmpty()) {
+                scoreItem.setRole(roles.get(0));
+            }
         }
         
         return scoreItems.stream()
@@ -486,7 +515,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
         int totalExperts = taskExperts.size();
         int completedScores = 0;
         
-        // 计算已完成评分的专家数量
+        // 计算已完成评分的专家数量和收集专家列表
+        List<String> scoredExperts = new ArrayList<>();
         for (Map<String, Object> expert : taskExperts) {
             String username = (String) expert.get("expert_username");
             List<Map<String, Object>> scores = jdbcTemplate.queryForList(
@@ -495,6 +525,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
             
             if (!scores.isEmpty()) {
                 completedScores++;
+                scoredExperts.add(username);
             }
         }
         
@@ -505,8 +536,109 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
         progress.put("totalExperts", total);
         progress.put("completedExperts", completed);
         progress.put("completionPercentage", percentage);
+        progress.put("scoredExperts", scoredExperts);
+        progress.put("completed", completed >= total && total > 0);
         
         return progress;
+    }
+    
+    /**
+     * 获取项目评分进度（指定任务）
+     */
+    @Override
+    public Map<String, Object> getProjectProgress(Long projectId, Long taskId) {
+        Map<String, Object> progress = new HashMap<>();
+        
+        // 获取项目
+        Project project = projectRepository.selectById(projectId);
+        if (project == null) {
+            progress.put("totalExperts", 0);
+            progress.put("completedExperts", 0);
+            progress.put("completionPercentage", 0.0);
+            return progress;
+        }
+        
+        // 验证项目是否属于指定任务
+        List<Map<String, Object>> taskProjects = jdbcTemplate.queryForList(
+                "SELECT task_id FROM task_projects WHERE project_id = ? AND task_id = ?", 
+                projectId, taskId);
+        
+        if (taskProjects.isEmpty()) {
+            progress.put("totalExperts", 0);
+            progress.put("completedExperts", 0);
+            progress.put("completionPercentage", 0.0);
+            return progress;
+        }
+        
+        // 获取任务关联的专家
+        List<Map<String, Object>> taskExperts = jdbcTemplate.queryForList(
+                "SELECT expert_username FROM task_experts WHERE task_id = ?", taskId);
+        
+        int totalExperts = taskExperts.size();
+        int completedScores = 0;
+        
+        // 计算已完成评分的专家数量和收集专家列表（指定任务）
+        List<String> scoredExperts = new ArrayList<>();
+        for (Map<String, Object> expert : taskExperts) {
+            String username = (String) expert.get("expert_username");
+            List<Map<String, Object>> scores = jdbcTemplate.queryForList(
+                    "SELECT * FROM scores WHERE project_id = ? AND task_id = ? AND user_id = ? AND is_draft = 0",
+                    projectId, taskId, username);
+            
+            if (!scores.isEmpty()) {
+                completedScores++;
+                scoredExperts.add(username);
+            }
+        }
+        
+        int total = totalExperts;
+        int completed = completedScores;
+        double percentage = total > 0 ? (double) completed / total * 100 : 0.0;
+        
+        progress.put("totalExperts", total);
+        progress.put("completedExperts", completed);
+        progress.put("completionPercentage", percentage);
+        progress.put("scoredExperts", scoredExperts);
+        progress.put("completed", completed >= total && total > 0);
+        
+        return progress;
+    }
+    
+    /**
+     * 获取项目评分详情
+     */
+    @Override
+    public Map<String, Object> getProjectScores(Long projectId, Long taskId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 获取项目基本信息
+        Project project = projectRepository.selectById(projectId);
+        if (project == null) {
+            result.put("error", "项目不存在");
+            return result;
+        }
+        
+        result.put("project", convertToDTO(project));
+        
+        // 获取评分统计信息
+        Map<String, Object> scoreStatistics;
+        if (taskId != null) {
+            scoreStatistics = scoreService.getProjectScoreStatistics(projectId, taskId);
+        } else {
+            scoreStatistics = scoreService.getProjectScoreStatistics(projectId);
+        }
+        result.put("statistics", scoreStatistics);
+        
+        // 获取项目评分进度
+        Map<String, Object> progress;
+        if (taskId != null) {
+            progress = getProjectProgress(projectId, taskId);
+        } else {
+            progress = getProjectProgress(projectId);
+        }
+        result.put("progress", progress);
+        
+        return result;
     }
     
     /**
@@ -523,11 +655,11 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
         dto.setUpdateTime(project.getUpdateTime());
         dto.setUnit(project.getUnit());
         dto.setLeader(project.getLeader());
-
+        
         // 评分项
         if (project.getScoreItems() != null) {
             List<ScoreItemDTO> scoreItemDTOs = project.getScoreItems().stream()
-                .map(this::convertToScoreItemDTO)
+                    .map(this::convertToScoreItemDTO)
                 .collect(Collectors.toList());
             dto.setScoreItems(scoreItemDTOs);
 
@@ -572,5 +704,38 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectRepository, Project> 
         dto.setRoles(scoreItem.getRoles());
         
         return dto;
+    }
+
+    /**
+     * 只查主表，不查关联的简化项目列表
+     */
+    @Override
+    public List<ProjectDTO> getAllSimpleProjects() {
+        List<Project> projects = projectRepository.findAllByOrderByDisplayOrderAsc();
+        return projects.stream().map(project -> {
+            ProjectDTO dto = new ProjectDTO();
+            dto.setId(project.getId());
+            dto.setName(project.getName());
+            dto.setStatus(project.getStatus());
+            dto.setUnit(project.getUnit());
+            dto.setLeader(project.getLeader());
+            dto.setCreateTime(project.getCreateTime());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProjectDTO> getSimpleProjectsByTask(Long taskId) {
+        List<Project> projects = projectRepository.findByTaskIdOrderByDisplayOrderAsc(taskId);
+        return projects.stream().map(project -> {
+            ProjectDTO dto = new ProjectDTO();
+            dto.setId(project.getId());
+            dto.setName(project.getName());
+            dto.setStatus(project.getStatus());
+            dto.setUnit(project.getUnit());
+            dto.setLeader(project.getLeader());
+            dto.setCreateTime(project.getCreateTime());
+            return dto;
+        }).collect(Collectors.toList());
     }
 } 

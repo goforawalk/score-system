@@ -70,6 +70,8 @@ public class StatisticsServiceTest {
     private Date pastDate;
     private Date currentDate;
     private Date futureDate;
+    private Long taskId1;
+    private Long taskId2;
     
     /**
      * 测试前准备
@@ -169,6 +171,7 @@ public class StatisticsServiceTest {
         testTask1.setEndTime(futureDate);
         
         taskRepository.insert(testTask1);
+        taskId1 = testTask1.getId();
         
         // 创建测试任务2 - 已结束任务
         testTask2 = new Task();
@@ -181,16 +184,18 @@ public class StatisticsServiceTest {
         testTask2.setEndTime(pastDate);
         
         taskRepository.insert(testTask2);
+        taskId2 = testTask2.getId();
         
         // 创建测试评分1 - 高分
         testScore1 = new Score();
         testScore1.setProjectId(testProject1.getId());
         testScore1.setUserId(testUser1.getUsername());
+        testScore1.setTaskId(taskId1);
         testScore1.setTotalScore(85.5);
         testScore1.setComments("测试评分1");
         testScore1.setIsDraft(false);
-        testScore1.setCreateTime(pastDate);
-        testScore1.setUpdateTime(pastDate);
+        testScore1.setCreateTime(currentDate);
+        testScore1.setUpdateTime(currentDate);
         
         scoreRepository.insert(testScore1);
         
@@ -198,11 +203,12 @@ public class StatisticsServiceTest {
         testScore2 = new Score();
         testScore2.setProjectId(testProject2.getId());
         testScore2.setUserId(testUser1.getUsername());
+        testScore2.setTaskId(taskId2);
         testScore2.setTotalScore(92.0);
         testScore2.setComments("测试评分2");
         testScore2.setIsDraft(false);
-        testScore2.setCreateTime(pastDate);
-        testScore2.setUpdateTime(pastDate);
+        testScore2.setCreateTime(currentDate);
+        testScore2.setUpdateTime(currentDate);
         
         scoreRepository.insert(testScore2);
         
@@ -241,6 +247,10 @@ public class StatisticsServiceTest {
         testDraftScore.setUpdateTime(currentDate);
         
         scoreRepository.insert(testDraftScore);
+        
+        // 关联任务和项目
+        jdbcTemplate.update("INSERT INTO task_projects (task_id, project_id) VALUES (?, ?)", 
+                           new Object[]{taskId1, testProject1.getId()});
     }
     
     /**
@@ -497,5 +507,50 @@ public class StatisticsServiceTest {
         assertNotNull(taskStats, "任务统计数据不应为空");
         assertTrue(taskStats.containsKey("projectCount"), "应包含项目数量");
         assertTrue(taskStats.containsKey("expertCount"), "应包含专家数量");
+    }
+
+    @Test
+    @DisplayName("测试带taskId的获取用户统计数据")
+    public void testGetUserStatisticsWithTaskId() {
+        List<Map<String, Object>> userStats = statisticsService.getUserStatistics(taskId1);
+        assertNotNull(userStats);
+        assertEquals(1, userStats.size());
+        Map<String, Object> stat = userStats.get(0);
+        assertEquals(testUser1.getUsername(), stat.get("username"));
+        assertEquals(1, stat.get("scoreCount"));
+    }
+
+    @Test
+    @DisplayName("测试带taskId的获取项目统计数据")
+    public void testGetProjectStatisticsWithTaskId() {
+        List<Map<String, Object>> projectStats = statisticsService.getProjectStatistics(taskId1);
+        assertNotNull(projectStats);
+        assertEquals(1, projectStats.size());
+        // 可进一步断言内容
+    }
+
+  @Test
+@DisplayName("测试带taskId的获取时间段统计数据")
+public void testGetTimeRangeStatisticsWithTaskId() {
+    Calendar calendar = Calendar.getInstance();
+    calendar.set(2025, Calendar.JULY, 1, 0, 0, 0);
+    calendar.set(Calendar.MILLISECOND, 0);
+    Date start = calendar.getTime();
+    calendar.set(2025, Calendar.JULY, 7, 0, 0, 0);
+    calendar.set(Calendar.MILLISECOND, 0);
+    Date end = calendar.getTime();
+    Map<String, Object> stats = statisticsService.getTimeRangeStatistics(start, end, taskId1);
+    assertNotNull(stats);
+    assertTrue(stats.containsKey("scoreCount"));
+    assertEquals(1, stats.get("scoreCount"));
+}
+
+    @Test
+    @DisplayName("测试带taskId的获取评分分布统计")
+    public void testGetScoreDistributionWithTaskId() {
+        Map<String, Integer> distribution = statisticsService.getScoreDistribution(taskId1);
+        assertNotNull(distribution);
+        int total = distribution.values().stream().mapToInt(Integer::intValue).sum();
+        assertEquals(1, total);
     }
 }

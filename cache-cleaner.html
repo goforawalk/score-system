@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>缓存清理工具 - 评分系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        .cache-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f9f9f9;
+            border-radius: 3px;
+        }
+        .cache-key {
+            font-family: monospace;
+            color: #666;
+        }
+        .cache-value {
+            font-size: 12px;
+            color: #999;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .actions {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .cache-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>缓存清理工具</h1>
+        
+        <div class="section">
+            <h2>缓存统计</h2>
+            <div class="cache-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalItems">0</div>
+                    <div class="stat-label">总缓存项</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="scoreItems">0</div>
+                    <div class="stat-label">评分相关</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="draftItems">0</div>
+                    <div class="stat-label">草稿数据</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="userItems">0</div>
+                    <div class="stat-label">用户数据</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>当前缓存内容</h2>
+            <div id="cacheList"></div>
+        </div>
+
+        <div class="section">
+            <h2>操作</h2>
+            <div class="actions">
+                <button class="btn btn-success" onclick="refreshCacheList()">刷新缓存列表</button>
+                <button class="btn btn-danger" onclick="clearAllCache()">清空所有缓存</button>
+                <button class="btn" onclick="clearScoreCache()">清空评分缓存</button>
+                <button class="btn" onclick="clearDraftCache()">清空草稿缓存</button>
+                <button class="btn" onclick="clearUserCache()">清空用户缓存</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>快速跳转</h2>
+            <div class="actions">
+                <button class="btn" onclick="goToScoringWithClear()">进入评分页面（清空缓存）</button>
+                <button class="btn" onclick="goToAdmin()">进入管理页面</button>
+                <button class="btn" onclick="goToLogin()">返回登录页面</button>
+            </div>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // 页面加载时自动刷新缓存列表
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshCacheList();
+        });
+
+        function refreshCacheList() {
+            const cacheList = document.getElementById('cacheList');
+            const totalItems = document.getElementById('totalItems');
+            const scoreItems = document.getElementById('scoreItems');
+            const draftItems = document.getElementById('draftItems');
+            const userItems = document.getElementById('userItems');
+
+            let html = '';
+            let total = 0;
+            let scoreCount = 0;
+            let draftCount = 0;
+            let userCount = 0;
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                total++;
+
+                let category = 'other';
+                if (key === 'scores' || key === 'latestReviewTaskId') {
+                    category = 'score';
+                    scoreCount++;
+                } else if (key.startsWith('scoreDraft_')) {
+                    category = 'draft';
+                    draftCount++;
+                } else if (key === 'userInfo' || key === 'rememberedUsername') {
+                    category = 'user';
+                    userCount++;
+                }
+
+                html += `
+                    <div class="cache-item">
+                        <div>
+                            <div class="cache-key">${key}</div>
+                            <div class="cache-value">${value ? (value.length > 50 ? value.substring(0, 50) + '...' : value) : '(空)'}</div>
+                        </div>
+                        <button class="btn" onclick="removeCacheItem('${key}')">删除</button>
+                    </div>
+                `;
+            }
+
+            if (html === '') {
+                html = '<p>暂无缓存数据</p>';
+            }
+
+            cacheList.innerHTML = html;
+            totalItems.textContent = total;
+            scoreItems.textContent = scoreCount;
+            draftItems.textContent = draftCount;
+            userItems.textContent = userCount;
+
+            showStatus('缓存列表已刷新', 'success');
+        }
+
+        function removeCacheItem(key) {
+            localStorage.removeItem(key);
+            showStatus(`已删除缓存项: ${key}`, 'success');
+            refreshCacheList();
+        }
+
+        function clearAllCache() {
+            if (confirm('确定要清空所有缓存数据吗？此操作不可恢复！')) {
+                localStorage.clear();
+                showStatus('所有缓存数据已清空', 'success');
+                refreshCacheList();
+            }
+        }
+
+        function clearScoreCache() {
+            localStorage.removeItem('scores');
+            localStorage.removeItem('latestReviewTaskId');
+            showStatus('评分相关缓存已清空', 'success');
+            refreshCacheList();
+        }
+
+        function clearDraftCache() {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('scoreDraft_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            showStatus(`已清空 ${keysToRemove.length} 个草稿缓存`, 'success');
+            refreshCacheList();
+        }
+
+        function clearUserCache() {
+            localStorage.removeItem('userInfo');
+            localStorage.removeItem('rememberedUsername');
+            showStatus('用户相关缓存已清空', 'success');
+            refreshCacheList();
+        }
+
+        function goToScoringWithClear() {
+            window.location.href = 'expert/scoring.html?force_clear_cache=true';
+        }
+
+        function goToAdmin() {
+            window.location.href = 'admin/dashboard.html';
+        }
+
+        function goToLogin() {
+            window.location.href = 'index.html';
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

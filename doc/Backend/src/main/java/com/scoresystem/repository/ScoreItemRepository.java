@@ -5,6 +5,7 @@ import com.scoresystem.model.ScoreItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Delete;
 
 import java.util.List;
 
@@ -36,4 +37,10 @@ public interface ScoreItemRepository extends BaseMapper<ScoreItem> {
             "WHERE si.project_id = #{projectId} AND sir.role = #{role} " +
             "ORDER BY si.display_order ASC")
     List<ScoreItem> findByProjectIdAndRole(@Param("projectId") Long projectId, @Param("role") String role);
+
+    /**
+     * 清空所有评分项数据
+     */
+    @Delete("DELETE FROM score_items")
+    void deleteAllScoreItems();
 }

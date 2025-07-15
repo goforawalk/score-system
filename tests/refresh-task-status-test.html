@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刷新任务状态测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>刷新任务状态测试</h1>
+    
+    <div class="test-container">
+        <h2>测试场景</h2>
+        <p>这个测试验证当评审专家完成评分后，点击"刷新页面"按钮时的行为：</p>
+        <ul>
+            <li>任务已完成：应该跳转到总结页面</li>
+            <li>任务未完成：应该显示等待其他专家的状态</li>
+            <li>不应该显示"您未被分配任何评分项"的错误信息</li>
+        </ul>
+    </div>
+    
+    <div class="test-container">
+        <h2>模拟测试</h2>
+        <button class="test-button" onclick="testTaskCompleted()">测试任务已完成</button>
+        <button class="test-button" onclick="testTaskNotCompleted()">测试任务未完成</button>
+        <button class="test-button" onclick="testErrorCase()">测试错误情况</button>
+        <div id="testResult"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>实际页面测试</h2>
+        <p>要测试实际的刷新功能，请：</p>
+        <ol>
+            <li>以评审专家身份登录系统</li>
+            <li>完成一个项目的评分</li>
+            <li>点击"刷新页面"按钮</li>
+            <li>验证是否显示等待状态而不是错误信息</li>
+        </ol>
+        <a href="../expert/scoring.html" class="test-button" style="text-decoration: none; display: inline-block;">打开评审页面</a>
+    </div>
+
+    <script src="../js/api/config.js"></script>
+    <script src="../js/api/http.js"></script>
+    <script src="../js/api/api-service.js"></script>
+    <script src="../js/api/api-adapter.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script>
+        // 模拟API响应
+        const mockApi = {
+            checkTaskCompletionStatus: function(taskId) {
+                return new Promise((resolve) => {
+                    // 模拟网络延迟
+                    setTimeout(() => {
+                        if (taskId === 'completed') {
+                            resolve({
+                                success: true,
+                                data: {
+                                    isCompleted: true,
+                                    completedExperts: 3,
+                                    totalExperts: 3,
+                                    completionPercentage: 100,
+                                    completedExpertsList: ['expert1', 'expert2', 'expert3']
+                                }
+                            });
+                        } else if (taskId === 'not-completed') {
+                            resolve({
+                                success: true,
+                                data: {
+                                    isCompleted: false,
+                                    completedExperts: 1,
+                                    totalExperts: 3,
+                                    completionPercentage: 33.3,
+                                    completedExpertsList: ['expert1']
+                                }
+                            });
+                        } else {
+                            resolve({
+                                success: false,
+                                message: '获取任务状态失败'
+                            });
+                        }
+                    }, 500);
+                });
+            }
+        };
+
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = `<div class="test-result ${type}">${message}</div>`;
+        }
+
+        function testTaskCompleted() {
+            showResult('测试任务已完成场景...', 'info');
+            
+            // 模拟refreshTaskStatus函数的行为
+            const taskId = 'completed';
+            
+            // 显示加载提示
+            showResult('正在刷新任务状态...', 'info');
+            
+            mockApi.checkTaskCompletionStatus(taskId)
+                .then(response => {
+                    if (response.success) {
+                        const status = response.data;
+                        if (status.isCompleted) {
+                            showResult('✓ 任务已完成，应该跳转到总结页面', 'success');
+                        } else {
+                            showResult('✗ 任务未完成，但应该已完成', 'error');
+                        }
+                    } else {
+                        showResult('✗ 获取任务状态失败: ' + response.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showResult('✗ 刷新任务状态失败: ' + error.message, 'error');
+                });
+        }
+
+        function testTaskNotCompleted() {
+            showResult('测试任务未完成场景...', 'info');
+            
+            const taskId = 'not-completed';
+            
+            // 显示加载提示
+            showResult('正在刷新任务状态...', 'info');
+            
+            mockApi.checkTaskCompletionStatus(taskId)
+                .then(response => {
+                    if (response.success) {
+                        const status = response.data;
+                        if (!status.isCompleted) {
+                            showResult(`✓ 任务未完成，应该显示等待状态<br>
+                                完成进度：${status.completedExperts}/${status.totalExperts} 位专家已完成<br>
+                                完成百分比：${status.completionPercentage.toFixed(1)}%<br>
+                                已完成的专家：${status.completedExpertsList.join(', ')}`, 'success');
+                        } else {
+                            showResult('✗ 任务已完成，但应该未完成', 'error');
+                        }
+                    } else {
+                        showResult('✗ 获取任务状态失败: ' + response.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showResult('✗ 刷新任务状态失败: ' + error.message, 'error');
+                });
+        }
+
+        function testErrorCase() {
+            showResult('测试错误情况...', 'info');
+            
+            const taskId = 'error';
+            
+            // 显示加载提示
+            showResult('正在刷新任务状态...', 'info');
+            
+            mockApi.checkTaskCompletionStatus(taskId)
+                .then(response => {
+                    if (response.success) {
+                        showResult('✗ 应该失败但成功了', 'error');
+                    } else {
+                        showResult('✓ 正确显示了错误信息: ' + response.message, 'success');
+                    }
+                })
+                .catch(error => {
+                    showResult('✗ 刷新任务状态失败: ' + error.message, 'error');
+                });
+        }
+    </script>
+</body>
+</html> 

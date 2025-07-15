@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>综合验证测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .config { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .config input, .config select { margin: 5px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .progress { background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { background: #28a745; height: 100%; width: 0%; transition: width 0.3s; }
+        .log { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 6px; font-family: monospace; max-height: 400px; overflow-y: auto; }
+        .log-entry { margin-bottom: 5px; }
+        .log-info { color: #87ceeb; }
+        .log-success { color: #90ee90; }
+        .log-error { color: #ff6b6b; }
+        .results { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .summary-card { background: white; padding: 15px; border-radius: 6px; text-align: center; border-left: 4px solid #007bff; }
+        .summary-card.success { border-left-color: #28a745; }
+        .summary-card.error { border-left-color: #dc3545; }
+        .summary-number { font-size: 2em; font-weight: bold; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 综合验证测试</h1>
+            <p>验证整个数据流：前端提交包含taskId的数据，后端接收并正确处理，后端返回适合评审评分和管理员统计的数据</p>
+        </div>
+        
+        <div class="config">
+            <h3>测试配置</h3>
+            <label>后端API地址: <input type="text" id="baseUrl" value="http://localhost:8080"></label><br>
+            <label>测试用户名: <input type="text" id="username" value="admin"></label><br>
+            <label>测试密码: <input type="password" id="password" value="admin123"></label><br>
+            <label>请求超时(ms): <input type="number" id="timeout" value="10000" min="1000" max="30000"></label>
+            <div style="margin-top: 10px; padding: 10px; background: #e7f3ff; border-radius: 4px; font-size: 0.9em;">
+                <strong>注意：</strong>此测试已调整为匹配后端实际接口配置（无/api前缀）
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button id="startTest" class="btn btn-primary">🚀 开始综合验证测试</button>
+            <button id="stopTest" class="btn btn-danger hidden">⏹️ 停止测试</button>
+            <button id="clearLog" class="btn btn-success">🗑️ 清空日志</button>
+            <button id="exportResults" class="btn btn-success hidden">📊 导出结果</button>
+        </div>
+        
+        <div id="progressSection" class="hidden">
+            <div class="progress">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressText" style="text-align: center;">准备中...</div>
+        </div>
+        
+        <div class="results hidden" id="resultsSection">
+            <h3>测试结果</h3>
+            <div class="summary" id="summaryCards">
+                <div class="summary-card" id="totalCard">
+                    <div class="summary-number" id="totalNumber">0</div>
+                    <div>总测试数</div>
+                </div>
+                <div class="summary-card success" id="passedCard">
+                    <div class="summary-number" id="passedNumber">0</div>
+                    <div>通过测试</div>
+                </div>
+                <div class="summary-card error" id="failedCard">
+                    <div class="summary-number" id="failedNumber">0</div>
+                    <div>失败测试</div>
+                </div>
+                <div class="summary-card" id="successRateCard">
+                    <div class="summary-number" id="successRate">0%</div>
+                    <div>成功率</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="log" id="logContainer">
+            <div class="log-entry log-info">等待开始测试...</div>
+        </div>
+    </div>
+
+    <script src="comprehensive-verification-fixed.js"></script>
+    <script>
+        let testState = {
+            isRunning: false,
+            totalTests: 12,
+            passedTests: 0,
+            failedTests: 0
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `${prefix} [${timestamp}] ${message}`;
+            document.getElementById('logContainer').appendChild(logEntry);
+            document.getElementById('logContainer').scrollTop = document.getElementById('logContainer').scrollHeight;
+        }
+
+        function updateProgress(current, total) {
+            const percentage = total > 0 ? (current / total) * 100 : 0;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `测试进度: ${current}/${total} (${percentage.toFixed(1)}%)`;
+        }
+
+        function updateResults() {
+            const total = testState.totalTests;
+            const passed = testState.passedTests;
+            const failed = testState.failedTests;
+            const successRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('totalNumber').textContent = total;
+            document.getElementById('passedNumber').textContent = passed;
+            document.getElementById('failedNumber').textContent = failed;
+            document.getElementById('successRate').textContent = `${successRate}%`;
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '<div class="log-entry log-info">日志已清空...</div>';
+        }
+
+        async function startTest() {
+            if (testState.isRunning) return;
+
+            testState.isRunning = true;
+            testState.passedTests = 0;
+            testState.failedTests = 0;
+
+            document.getElementById('startTest').classList.add('hidden');
+            document.getElementById('stopTest').classList.remove('hidden');
+            document.getElementById('progressSection').classList.remove('hidden');
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('exportResults').classList.add('hidden');
+            clearLog();
+
+            TEST_CONFIG.baseUrl = document.getElementById('baseUrl').value;
+            TEST_CONFIG.timeout = parseInt(document.getElementById('timeout').value);
+            TEST_DATA.user.username = document.getElementById('username').value;
+            TEST_DATA.user.password = document.getElementById('password').value;
+
+            log('开始综合验证测试...', 'info');
+            log('='.repeat(50), 'info');
+
+            try {
+                const result = await runComprehensiveVerification();
+                
+                testState.isRunning = false;
+                document.getElementById('startTest').classList.remove('hidden');
+                document.getElementById('stopTest').classList.add('hidden');
+                document.getElementById('exportResults').classList.remove('hidden');
+
+                if (result) {
+                    log('🎉 所有测试通过！系统完全满足要求！', 'success');
+                    log('✅ 前端提交包含taskId的数据', 'success');
+                    log('✅ 后端接收并正确处理数据', 'success');
+                    log('✅ 后端返回适合评审评分和管理员统计的数据', 'success');
+                } else {
+                    log('⚠️ 部分测试失败，请检查系统实现', 'error');
+                }
+
+                updateResults();
+                updateProgress(testState.totalTests, testState.totalTests);
+
+            } catch (error) {
+                log(`测试执行失败: ${error.message}`, 'error');
+                testState.isRunning = false;
+                document.getElementById('startTest').classList.remove('hidden');
+                document.getElementById('stopTest').classList.add('hidden');
+            }
+        }
+
+        function stopTest() {
+            if (!testState.isRunning) return;
+            testState.isRunning = false;
+            document.getElementById('startTest').classList.remove('hidden');
+            document.getElementById('stopTest').classList.add('hidden');
+            log('测试已手动停止', 'info');
+        }
+
+        function exportResults() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                config: {
+                    baseUrl: document.getElementById('baseUrl').value,
+                    username: document.getElementById('username').value,
+                    timeout: document.getElementById('timeout').value
+                },
+                summary: {
+                    total: testState.totalTests,
+                    passed: testState.passedTests,
+                    failed: testState.failedTests,
+                    successRate: testState.totalTests > 0 ? ((testState.passedTests / testState.totalTests) * 100).toFixed(1) : 0
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `comprehensive-verification-results-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('startTest').addEventListener('click', startTest);
+        document.getElementById('stopTest').addEventListener('click', stopTest);
+        document.getElementById('clearLog').addEventListener('click', clearLog);
+        document.getElementById('exportResults').addEventListener('click', exportResults);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            log('综合验证测试页面已加载', 'info');
+            log('请配置测试参数并点击"开始综合验证测试"按钮', 'info');
+        });
+    </script>
+</body>
+</html> 

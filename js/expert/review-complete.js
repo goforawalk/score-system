@@ -28,7 +28,7 @@ $(document).ready(function() {
     console.log("尝试获取评审任务，任务ID:", taskId);
 
     // 获取任务详情
-    mockApi.getReviewTask(taskId)
+    api.getReviewTask(taskId)
         .then(taskRes => {
         if (!taskRes.success || !taskRes.data) {
                 console.error("获取任务详情失败:", taskRes);
@@ -38,37 +38,30 @@ $(document).ready(function() {
         const task = taskRes.data;
             console.log("获取到任务详情:", task);
             
-        // 获取项目详情
-        const projects = (task.projectIdsInOrder || []).map(pid => {
-                const project = mockApi.projects.find(p => p.id === pid);
-                if (!project) {
-                    console.warn(`未找到项目ID: ${pid}`);
-                }
-                return project;
-        }).filter(Boolean);
-
+        // 通过API批量获取所有项目详情
+        const projectIds = task.projectIdsInOrder || [];
+        const projectDetailPromises = projectIds.map(pid => api.getProjectDetails(pid, taskId));
+        Promise.all(projectDetailPromises).then(projectResults => {
+            const projects = projectResults.map(res => res.success && res.data ? res.data : null).filter(Boolean);
             if (projects.length === 0) {
                 console.warn("任务中没有找到有效项目");
                 showNoTask("此评审任务中没有有效项目");
                 return;
             }
-
-        // 获取评分记录
-            mockApi.getScores()
+            // 获取评分记录
+            api.getScoresByUser(username, taskId)
                 .then(scoreRes => {
                     if (!scoreRes.success) {
                         console.error("获取评分记录失败:", scoreRes);
                         showNoTask("获取评分记录失败");
                         return;
                     }
-                    
                     const allScores = Array.isArray(scoreRes.data) ? scoreRes.data : [];
                     console.log("获取到所有评分记录:", allScores);
-                    
-            // 只取当前专家本任务下的评分
-            const myScores = allScores.filter(s => 
-                s.username === username && task.projectIdsInOrder.includes(s.projectId)
-            );
+                    // 只取当前专家本任务下的评分
+                    const myScores = allScores.filter(s => 
+                        s.username === username && projectIds.includes(s.projectId)
+                    );
                     console.log("当前用户在本任务下的评分记录:", myScores);
 
                     // 如果API中没有找到评分记录，尝试从本地存储中获取
@@ -76,7 +69,7 @@ $(document).ready(function() {
                         console.warn("API中没有找到评分记录，尝试从本地存储中获取");
                         const localScores = JSON.parse(localStorage.getItem('scores') || '[]');
                         const localMyScores = localScores.filter(s => 
-                            s.username === username && task.projectIdsInOrder.includes(s.projectId)
+                            s.username === username && projectIds.includes(s.projectId)
                         );
                         
                         if (localMyScores.length > 0) {
@@ -126,10 +119,11 @@ $(document).ready(function() {
                     console.error("获取评分记录时发生错误:", error);
                     showNoTask("获取评分记录时发生错误");
                 });
-        })
-        .catch(error => {
-            console.error("获取任务详情时发生错误:", error);
-            showNoTask("获取任务详情时发生错误");
+        });
+    })
+    .catch(error => {
+        console.error("获取任务详情时发生错误:", error);
+        showNoTask("获取任务详情时发生错误");
     });
 
     function showNoTask(message = "暂无可展示的评审任务") {

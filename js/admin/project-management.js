@@ -132,7 +132,7 @@ function initializeUserInfo() {
 }
 
 function loadProjects() {
-    api.getProjects()
+    api.getSimpleProjects()
         .then(response => {
             if (response.success) {
                 window.allProjects = response.data; // 缓存所有项目
@@ -412,7 +412,13 @@ function addScoreItemRow(group, name = '', roles = [], minScore = 0, maxScore = 
 
 // 修改后的 editProject 函数，使其成为异步
 async function editProject(project) {
-    await openDialog('编辑项目', project);
+    // project 只需包含 id
+    const response = await api.getProject(project.id);
+    if (response.success) {
+        await openDialog('编辑项目', response.data);
+    } else {
+        alert('获取项目信息失败');
+    }
 }
 
 function toggleProjectStatus(project) {
@@ -450,15 +456,15 @@ const projectTemplates = {
         scoreItems: [
             { 
                 name: '产业',
-                roles: ['expert1', 'expert2']
+                roles: ['expert1']
             },
             {
                 name: '投融资',
-                roles: ['expert2', 'expert3']
+                roles: ['expert2']
             },
             {
                 name: '知识产权',
-                roles: ['expert1', 'expert3']
+                roles: ['expert3']
             }
         ]
     },
@@ -468,19 +474,19 @@ const projectTemplates = {
         scoreItems: [
             { 
                 name: '产业技术',
-                roles: ['expert1', 'expert2']
+                roles: ['expert1']
             },
             {
                 name: '投融资',
-                roles: ['expert2', 'expert3']
+                roles: ['expert2']
             },
             {
                 name: '知识产权',
-                roles: ['expert1', 'expert3']
+                roles: ['expert3']
             },
             {
                 name: '企业高管',
-                roles: ['expert1', 'expert2', 'expert4']
+                roles: ['expert4']
             }
         ]
     },
@@ -502,11 +508,11 @@ const projectTemplates = {
             },
             {
                 name: '技术经理人',
-                roles: ['expert1', 'expert2']
+                roles: ['expert5']
             },
             {
                 name: '企业高管',
-                roles: ['expert2', 'expert3', 'expert4']
+                roles: ['expert4']
             }
         ]
     },
@@ -959,7 +965,7 @@ async function openTaskDialog(task = null, readOnly = false) {
     try {
         // 获取项目列表和专家列表
         const [projectsResponse, expertsResponse] = await Promise.all([
-            api.getProjects(),
+            api.getSimpleProjects(),  // 使用简化项目数据
             api.getUsers()
         ]);
 
@@ -1150,7 +1156,7 @@ function createExpertItemElement(expert, isSelected) {
     return $(`
         <div class="expert-item ${isSelected ? 'selected' : 'unselected'}" data-id="${expert.username}">
             <span class="handle">☰</span>
-            <span class="expert-name">${expert.username}</span>
+            <span class="expert-name">${expert.name || expert.username}</span>
         </div>
     `);
 }
@@ -1221,16 +1227,13 @@ function handleTaskSubmit(e) {
         return;
     }
 
-    // 获取完整项目对象数组
-    const selectedProjects = (window.allProjects || []).filter(p => projectIdsInOrder.includes(p.id));
-
     // 构建正确的任务数据格式
     const taskData = {
         category: taskCategory,
         taskType: taskType,
         scoreGroupType: scoreGroupType,
         status: 'pending',
-        projects: selectedProjects, // 传递完整对象数组
+        projectIds: projectIdsInOrder, // 传递项目ID列表
         experts: expertUsernames
     };
 
@@ -1309,8 +1312,9 @@ function renderTasks(tasks) {
             }
         }
 
-        // 处理项目数量显示
+        // 处理项目数量和专家数量显示
         const projectCount = task.projects && Array.isArray(task.projects) ? task.projects.length : 0;
+        const expertCount = task.experts && Array.isArray(task.experts) ? task.experts.length : 0;
 
         const $card = $(`
             <div class="task-card" data-task-id="${task.id}">
@@ -1331,6 +1335,10 @@ function renderTasks(tasks) {
                     <div class="info-item">
                         <label>项目数量：</label>
                         <span>${projectCount} 个</span>
+                    </div>
+                    <div class="info-item">
+                        <label>专家数量：</label>
+                        <span>${expertCount} 个</span>
                     </div>
                 </div>
                 <div class="task-actions">
@@ -1374,15 +1382,10 @@ function getReviewTaskStatusText(status) {
 // 获取可用的专家角色列表
 async function getAvailableRoles() {
     try {
-        const response = await api.getUsers();
-        if (response.success) {
-            // 只返回专家的角色（如 expert1, expert2...）
-            return response.data
-                .filter(user => user.role && user.role.toLowerCase().startsWith('expert'))
-                .map(user => user.role);
-        } else {
-            throw new Error('获取专家角色列表失败');
-        }
+        // 直接返回内置专家角色
+        return [
+            'expert1', 'expert2', 'expert3', 'expert4', 'expert5', 'expert6', 'expert7'
+        ];
     } catch (error) {
         console.error('获取可用角色失败:', error);
         throw error;

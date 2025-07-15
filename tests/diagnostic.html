@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>API诊断工具</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .test-result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>API诊断工具</h1>
+    <button id="run-all">运行所有诊断</button>
+    <div id="results"></div>
+
+    <script>
+        function addResult(title, content, type) {
+            const className = type || 'info';
+            $('#results').append(`
+                <div class="test-result ${className}">
+                    <h3>${title}</h3>
+                    <pre>${content}</pre>
+                </div>
+            `);
+        }
+
+        function testEndpoint(url, method, expectedStatus) {
+            return new Promise((resolve) => {
+                $.ajax({
+                    url: url,
+                    method: method || 'GET',
+                    contentType: 'application/json',
+                    timeout: 5000,
+                    success: function(res) {
+                        resolve({
+                            success: true,
+                            status: 200,
+                            response: res,
+                            message: `成功访问 ${url}`
+                        });
+                    },
+                    error: function(xhr) {
+                        resolve({
+                            success: false,
+                            status: xhr.status,
+                            response: xhr.responseText,
+                            message: `访问 ${url} 失败: ${xhr.status} - ${xhr.statusText}`
+                        });
+                    }
+                });
+            });
+        }
+
+        $('#run-all').click(async function() {
+            $('#results').empty();
+            addResult('开始诊断', '正在检查API服务状态...', 'info');
+
+            // 测试基本连接
+            const basicTests = [
+                { url: 'http://localhost:8080/api/projects', method: 'GET', name: '项目列表' },
+                { url: 'http://localhost:8080/api/users', method: 'GET', name: '用户列表' },
+                { url: 'http://localhost:8080/api/tasks', method: 'GET', name: '任务列表' }
+            ];
+
+            for (const test of basicTests) {
+                const result = await testEndpoint(test.url, test.method);
+                addResult(
+                    test.name,
+                    `${result.message}\n状态码: ${result.status}\n响应: ${JSON.stringify(result.response, null, 2)}`,
+                    result.success ? 'success' : 'error'
+                );
+            }
+
+            // 测试测试数据生成接口
+            const generateResult = await testEndpoint('http://localhost:8080/api/test-data/generate', 'POST');
+            addResult(
+                '测试数据生成',
+                `${generateResult.message}\n状态码: ${generateResult.status}\n响应: ${generateResult.response}`,
+                generateResult.success ? 'success' : 'error'
+            );
+
+            // 测试不同的路径
+            const pathTests = [
+                { url: 'http://localhost:8080/test-data/generate', method: 'POST', name: '无API前缀路径' },
+                { url: 'http://localhost:8080/api/test-data/generate', method: 'POST', name: '有API前缀路径' }
+            ];
+
+            for (const test of pathTests) {
+                const result = await testEndpoint(test.url, test.method);
+                addResult(
+                    test.name,
+                    `${result.message}\n状态码: ${result.status}`,
+                    result.success ? 'success' : 'error'
+                );
+            }
+
+            addResult('诊断完成', '所有测试已完成，请查看上方结果。', 'info');
+        });
+    </script>
+</body>
+</html> 

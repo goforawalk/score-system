@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/user.css">
+    <style>
+        /* 进度条样式 */
+        .progress-bar-container {
+            background: #f0f0f0;
+            border-radius: 6px;
+            height: 20px;
+            width: 100%;
+            margin: 0.5em 0;
+        }
+        .progress-bar {
+            background: #4caf50;
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.4s;
+        }
+        .score-info {
+            font-weight: bold;
+            color: #333;
+        }
+        .countdown-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="logo">专家评审系统</div>
+            <nav class="menu">
+                <a href="dashboard.html">控制台首页</a>
+                <a href="project-management.html">项目管理</a>
+                <a href="user-management.html">用户管理</a>
+                <a href="scoring-management.html">评分管理</a>
+                <a href="statistics.html">统计分析</a>
+                <a href="scoring-progress.html" class="active">任务进度</a>
+            </nav>
+            <div class="user-info">
+                <span id="currentUser"></span>
+                <a href="#" id="logoutBtn">退出</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <h1>评审任务进度与评分信息</h1>
+            </header>
+
+            <div class="content">
+                <div class="countdown-info">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>下次自动刷新倒计时：<span id="countdown">30</span> 秒</span>
+                        <div class="task-selector">
+                            <label for="taskSelect"></label>
+                            <select id="taskSelect" class="form-control">
+                                <option value="">请选择评审任务</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="user-content">
+                    <table class="user-table">
+                        <thead>
+                            <tr>
+                                <th>项目名称</th>
+                                <th>评分进度</th>
+                                <th>进度条</th>
+                                <th>总分</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userList">
+                            <!-- 动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/utils/error-handler.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/api/mock.js"></script>
+    <script src="../js/api/env.js"></script>
+    <script src="../js/api/config.js"></script>
+    <script src="../js/api/http.js"></script>
+    <script src="../js/api/api-service.js"></script>
+    <script src="../js/api/api-adapter.js"></script>
+    <script>
+        let timer = null;
+        let countdown = 30;
+        let currentTaskId = null;
+
+        // 倒计时显示
+        function updateCountdownDisplay() {
+            document.getElementById('countdown').textContent = countdown;
+        }
+
+        // 启动定时刷新
+        function startAutoRefresh(taskId) {
+            // 清除旧定时器
+            if (timer) clearInterval(timer);
+            countdown = 30;
+            updateCountdownDisplay();
+            currentTaskId = taskId;
+
+            timer = setInterval(() => {
+                countdown--;
+                updateCountdownDisplay();
+                if (countdown <= 0) {
+                    loadProgress(currentTaskId, true); // 自动刷新
+                }
+            }, 1000);
+        }
+
+        // 1. 加载任务列表
+        function loadTasks() {
+            api.getSimpleTasks().then(response => {
+                if (response.success) {
+                    const select = document.getElementById('taskSelect');
+                    select.innerHTML = '<option value="">请选择评审任务</option>';
+                    const tasks = response.data;
+                    tasks.forEach(task => {
+                        const option = document.createElement('option');
+                        option.value = task.id;
+                        option.textContent = (task.taskId?task.taskId:'') + (task.category ? ' - ' + task.category : '');
+                        select.appendChild(option);
+                    });
+                    if (tasks.length > 0) {
+                        select.value = tasks[0].id;
+                        loadProgress(tasks[0].id, false); // 首次加载
+                        startAutoRefresh(tasks[0].id);
+                    }
+                }
+            }).catch(error => {
+                console.error('加载任务列表失败:', error);
+            });
+        }
+
+        // 2. 加载进度数据
+        function loadProgress(taskId, isAuto) {
+            api.getTaskProjectProgressAndScores(taskId).then(response => {
+                if (response.success) {
+                    const tbody = document.getElementById('userList');
+                    tbody.innerHTML = '';
+                    const data = response.data;
+                    data.forEach(item => {
+                        const tr = document.createElement('tr');
+                        // 项目名称
+                        const tdName = document.createElement('td');
+                        tdName.textContent = item.projectName;
+                        tr.appendChild(tdName);
+
+                        // 评分进度
+                        const tdProgress = document.createElement('td');
+                        tdProgress.innerHTML = `${item.completedExperts} / ${item.totalExperts} (${item.completionRate.toFixed(1)}%)`;
+                        tr.appendChild(tdProgress);
+
+                        // 进度条
+                        const tdBar = document.createElement('td');
+                        const barContainer = document.createElement('div');
+                        barContainer.className = 'progress-bar-container';
+                        const bar = document.createElement('div');
+                        bar.className = 'progress-bar';
+                        bar.style.width = item.completionRate + '%';
+                        barContainer.appendChild(bar);
+                        tdBar.appendChild(barContainer);
+                        tr.appendChild(tdBar);
+
+                        // 总分
+                        const tdScore = document.createElement('td');
+                        tdScore.className = 'score-info';
+                        tdScore.textContent = item.totalScore != null ? item.totalScore.toFixed(2) : '-';
+                        tr.appendChild(tdScore);
+
+                        tbody.appendChild(tr);
+                    });
+                    // 自动刷新时重置倒计时
+                    if (isAuto) {
+                        countdown = 30;
+                        updateCountdownDisplay();
+                    }
+                }
+            }).catch(error => {
+                console.error('加载进度数据失败:', error);
+            });
+        }
+
+        // 3. 任务切换事件
+        document.getElementById('taskSelect').addEventListener('change', function() {
+            if (this.value) {
+                loadProgress(this.value, false);
+                startAutoRefresh(this.value);
+            }
+        });
+
+        // 初始化
+        loadTasks();
+    </script>
+</body>
+</html>

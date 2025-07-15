@@ -20,10 +20,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * UserService测试类
+ * UserService集成测试类
  * 
  * 测试说明：
- * 1. 使用@SpringBootTest进行集成测试
+ * 1. 使用@SpringBootTest进行集成测试，确保测试模式的一致性
  * 2. 使用@ActiveProfiles("sqlserver")指定使用SQL Server数据库
  * 3. 使用@Transactional确保测试数据回滚，不影响数据库
  * 4. 测试包括：用户登录、获取所有用户、保存用户、删除用户、根据用户名获取用户等功能
@@ -54,6 +54,7 @@ public class UserServiceTest {
         // 清理可能存在的测试用户
         try {
             userRepository.deleteById("testuser");
+            userRepository.deleteById("newtestuser");
         } catch (Exception e) {
             // 忽略异常
         }
@@ -221,5 +222,41 @@ public class UserServiceTest {
         UserDTO user = userService.getUserByUsername("nonexistentuser");
         
         assertNull(user, "不存在的用户应该返回null");
+    }
+    
+    /**
+     * 测试保存用户 - 密码为空时抛出异常
+     * 验证当新用户密码为空时会抛出异常
+     */
+    @Test
+    @DisplayName("测试保存用户 - 密码为空时抛出异常")
+    public void testSaveUserWithEmptyPassword() {
+        testUserDTO.setPassword(null);
+        
+        assertThrows(IllegalArgumentException.class, () -> {
+            userService.saveUser(testUserDTO);
+        }, "新用户密码为空时应该抛出IllegalArgumentException异常");
+    }
+    
+    /**
+     * 测试保存用户 - 用户名已存在
+     * 验证当用户名已存在时能正确更新用户信息
+     */
+    @Test
+    @DisplayName("测试保存用户 - 用户名已存在")
+    public void testSaveUserWithExistingUsername() {
+        testUserDTO.setUsername("testuser");
+        testUserDTO.setName("更新的测试用户");
+        
+        UserDTO savedUser = userService.saveUser(testUserDTO);
+        
+        assertNotNull(savedUser, "保存的用户不应为空");
+        assertEquals("testuser", savedUser.getUsername(), "用户名应该匹配");
+        assertEquals("更新的测试用户", savedUser.getName(), "用户名称应该匹配");
+        
+        // 验证数据库中的用户信息已更新
+        User dbUser = userRepository.findByUsername("testuser");
+        assertNotNull(dbUser, "用户应该存在于数据库中");
+        assertEquals("更新的测试用户", dbUser.getName(), "数据库中的用户名称应该已更新");
     }
 }

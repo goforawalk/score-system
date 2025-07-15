@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>API测试页面</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>API测试页面</h1>
+    <button id="test-btn">测试API</button>
+    <div id="result"></div>
+
+    <script>
+        $('#test-btn').click(function() {
+            $('#result').html('正在测试...');
+            
+            $.ajax({
+                url: 'http://localhost:8080/api/test-data/generate',
+                method: 'POST',
+                contentType: 'application/json',
+                success: function(res) {
+                    $('#result').html('成功: ' + JSON.stringify(res));
+                },
+                error: function(xhr) {
+                    $('#result').html('失败: ' + xhr.status + ' - ' + xhr.statusText + '<br>响应: ' + xhr.responseText);
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

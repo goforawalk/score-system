@@ -61,15 +61,16 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
             return null;
         }
         
-        // 查找现有评分或创建新评分
-        List<Score> existingScores = scoreRepository.findByProjectIdAndUsername(
-                scoreRequest.getProjectId(), scoreRequest.getUsername());
+        // 查找现有评分或创建新评分（需要同时匹配项目、任务和用户）
+        List<Score> existingScores = scoreRepository.findByProjectIdAndTaskIdAndUsername(
+                scoreRequest.getProjectId(), scoreRequest.getTaskId(), scoreRequest.getUsername());
         
         Score score;
         if (existingScores.isEmpty() || scoreRequest.getIsDraft()) {
             // 创建新评分
             score = new Score();
             score.setProjectId(scoreRequest.getProjectId());
+            score.setTaskId(scoreRequest.getTaskId());
             score.setUserId(scoreRequest.getUsername());
             score.setCreateTime(new Date());
         } else {
@@ -95,8 +96,9 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
             for (Map.Entry<Long, Integer> entry : scoreRequest.getScores().entrySet()) {
                 ScoreItem item = scoreItemMap.get(entry.getKey());
                 if (item != null) {
-                    totalScore += entry.getValue() * item.getWeight();
-                    weightSum += item.getWeight();
+                	double weight = (item.getWeight() != null) ? item.getWeight() : 1.0;
+                    totalScore += entry.getValue() * weight;
+                    weightSum += weight;
                 }
             }
             
@@ -142,6 +144,22 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
     }
     
     /**
+     * 获取评分历史（指定任务）
+     */
+    @Override
+    public List<ScoreDTO> getScoreHistory(Long projectId, Long taskId, String username) {
+        List<Score> scores = scoreRepository.findByProjectIdAndTaskIdAndUsername(projectId, taskId, username);
+        
+        // 加载关联信息
+        return scores.stream()
+                .map(score -> {
+                    loadScoreRelations(score);
+                    return convertToDTO(score);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * 获取项目所有评分
      */
     @Override
@@ -158,11 +176,43 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
     }
     
     /**
+     * 获取项目所有评分（指定任务）
+     */
+    @Override
+    public List<ScoreDTO> getScoresByProject(Long projectId, Long taskId) {
+        List<Score> scores = scoreRepository.findByProjectIdAndTaskId(projectId, taskId);
+        
+        // 加载关联信息
+        return scores.stream()
+                .map(score -> {
+                    loadScoreRelations(score);
+                    return convertToDTO(score);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * 获取用户所有评分
      */
     @Override
     public List<ScoreDTO> getScoresByUser(String username) {
         List<Score> scores = scoreRepository.findByUsername(username);
+        
+        // 加载关联信息
+        return scores.stream()
+                .map(score -> {
+                    loadScoreRelations(score);
+                    return convertToDTO(score);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 获取用户所有评分（指定任务）
+     */
+    @Override
+    public List<ScoreDTO> getScoresByUser(String username, Long taskId) {
+        List<Score> scores = scoreRepository.findByUsernameAndTaskId(username, taskId);
         
         // 加载关联信息
         return scores.stream()
@@ -193,11 +243,38 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
     }
     
     /**
+     * 计算项目总评分（指定任务）
+     */
+    @Override
+    public Double calculateProjectTotalScore(Long projectId, Long taskId) {
+        List<Score> finalScores = scoreRepository.findFinalScoresByProjectIdAndTaskId(projectId, taskId);
+        
+        if (finalScores.isEmpty()) {
+            return 0.0;
+        }
+        
+        // 计算平均分
+        double sum = finalScores.stream()
+                .mapToDouble(Score::getTotalScore)
+                .sum();
+        
+        return sum / finalScores.size();
+    }
+    
+    /**
      * 计算评分项总评分
      */
     @Override
     public Double calculateScoreItemAverage(Long projectId, Long scoreItemId) {
         return scoreRepository.calculateAverageScoreByProjectIdAndScoreItemId(projectId, scoreItemId);
+    }
+    
+    /**
+     * 计算评分项总评分（指定任务）
+     */
+    @Override
+    public Double calculateScoreItemAverage(Long projectId, Long taskId, Long scoreItemId) {
+        return scoreRepository.calculateAverageScoreByProjectIdAndTaskIdAndScoreItemId(projectId, taskId, scoreItemId);
     }
     
     /**
@@ -237,6 +314,68 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
         // 获取评分人数
         List<Score> finalScores = scoreRepository.findFinalScoresByProjectId(projectId);
         statistics.put("scorerCount", finalScores != null ? finalScores.size() : 0);
+        
+        return statistics;
+    }
+    
+    /**
+     * 获取项目评分统计（指定任务）
+     */
+    @Override
+    public Map<String, Object> getProjectScoreStatistics(Long projectId, Long taskId) {
+        Map<String, Object> statistics = new HashMap<>();
+        
+        // 获取项目信息
+        Project project = projectRepository.selectById(projectId);
+        if (project == null) {
+            return statistics;
+        }
+        
+        statistics.put("projectId", projectId);
+        statistics.put("projectName", project.getName());
+        statistics.put("taskId", taskId);
+        
+        // 获取该任务下的所有评分
+        List<Score> scores = scoreRepository.findByProjectIdAndTaskId(projectId, taskId);
+        statistics.put("totalScores", scores.size());
+        
+        // 计算平均分
+        if (!scores.isEmpty()) {
+            double averageScore = scores.stream()
+                    .filter(score -> !score.getIsDraft() && score.getTotalScore() != null)
+                    .mapToDouble(Score::getTotalScore)
+                    .average()
+                    .orElse(0.0);
+            statistics.put("averageScore", averageScore);
+        } else {
+            statistics.put("averageScore", 0.0);
+        }
+        
+        // 统计草稿和最终评分数量
+        long draftCount = scores.stream().filter(Score::getIsDraft).count();
+        long finalCount = scores.size() - draftCount;
+        statistics.put("draftCount", draftCount);
+        statistics.put("finalCount", finalCount);
+        
+        // 获取评分项统计
+        List<ScoreItem> scoreItems = scoreItemRepository.findByProjectId(projectId);
+        List<Map<String, Object>> itemStats = new ArrayList<>();
+        
+        for (ScoreItem item : scoreItems) {
+            Map<String, Object> itemStat = new HashMap<>();
+            itemStat.put("scoreItemId", item.getId());
+            itemStat.put("scoreItemName", item.getName());
+            itemStat.put("weight", item.getWeight());
+            
+            // 计算该评分项的平均分
+            Double avgScore = scoreRepository.calculateAverageScoreByProjectIdAndTaskIdAndScoreItemId(
+                    projectId, taskId, item.getId());
+            itemStat.put("averageScore", avgScore != null ? avgScore : 0.0);
+            
+            itemStats.add(itemStat);
+        }
+        
+        statistics.put("scoreItems", itemStats);
         
         return statistics;
     }
@@ -286,7 +425,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
             for (Map.Entry<Long, Integer> entry : scores.entrySet()) {
                 jdbcTemplate.update(
                         "INSERT INTO score_details (score_id, score_item_id, score_value) VALUES (?, ?, ?)",
-                        scoreId, entry.getKey(), entry.getValue());
+                        new Object[]{scoreId, entry.getKey(), entry.getValue()});
             }
         }
     }
@@ -305,6 +444,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
         dto.setUpdateTime(score.getUpdateTime());
         dto.setIsDraft(score.getIsDraft());
         dto.setScores(score.getScores());
+        dto.setTaskId(score.getTaskId());
         
         // 设置项目名称
         if (score.getProject() != null) {
@@ -327,6 +467,38 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreRepository, Score> implem
         List<Score> scores = scoreRepository.selectList(null);
         return scores.stream()
                 .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 获取所有评分记录（指定任务）
+     */
+    @Override
+    public List<ScoreDTO> getAllScores(Long taskId) {
+        List<Score> scores = scoreRepository.findByTaskId(taskId);
+        
+        // 加载关联信息
+        return scores.stream()
+                .map(score -> {
+                    loadScoreRelations(score);
+                    return convertToDTO(score);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 按任务获取评分记录
+     */
+    @Override
+    public List<ScoreDTO> getScoresByTask(Long taskId) {
+        List<Score> scores = scoreRepository.findByTaskId(taskId);
+        
+        // 加载关联信息
+        return scores.stream()
+                .map(score -> {
+                    loadScoreRelations(score);
+                    return convertToDTO(score);
+                })
                 .collect(Collectors.toList());
     }
 }

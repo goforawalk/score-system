@@ -8,11 +8,11 @@
     <link rel="stylesheet" href="../css/admin.css">
     <link rel="stylesheet" href="../css/statistics.css">
     <!-- 引入 ECharts -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+    <script src="../js/lib/echarts.min.js"></script>
     <!-- 添加 Excel 和 PDF 导出相关库 -->
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="../js/lib/xlsx.full.min.js"></script>
+    <script src="../js/lib/jspdf.umd.min.js"></script>
+    <script src="../js/lib/html2canvas.min.js"></script>
 </head>
 <body>
     <!-- 添加加载遮罩 -->
@@ -37,6 +37,7 @@
                 <a href="user-management.html">用户管理</a>
                 <a href="scoring-management.html">评分管理</a>
                 <a href="statistics.html" class="active">统计分析</a>
+                <a href="scoring-progress.html">任务进度</a>
             </nav>
             <div class="user-info">
                 <span id="currentUser"></span>
@@ -54,11 +55,19 @@
             </header>
 
             <div class="statistics-content">
+                <!-- 评审任务选择器 -->
+                <div class="task-selector">
+                    <label for="taskSelect">选择评审任务：</label>
+                    <select id="taskSelect">
+                        <option value="">请选择评审任务</option>
+                    </select>
+                </div>
+
                 <!-- 项目选择器 -->
                 <div class="project-selector">
                     <label for="projectSelect">选择项目：</label>
-                    <select id="projectSelect">
-                        <option value="">请选择项目</option>
+                    <select id="projectSelect" disabled>
+                        <option value="">请先选择评审任务</option>
                     </select>
                 </div>
 

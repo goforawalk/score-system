@@ -5,6 +5,8 @@ import com.scoresystem.model.Task;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Insert;
 
 import java.util.Date;
 import java.util.List;
@@ -88,4 +90,28 @@ public interface TaskRepository extends BaseMapper<Task> {
      */
     @Select("SELECT COUNT(*) FROM tasks WHERE create_time BETWEEN #{startDate} AND #{endDate}")
     int countByCreateTimeBetween(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    
+    /**
+     * 清空所有任务数据
+     */
+    @Delete("DELETE FROM tasks")
+    void deleteAllTasks();
+    
+    /**
+     * 清空所有任务-专家关联数据
+     */
+    @Delete("DELETE FROM task_experts")
+    void deleteAllTaskExperts();
+    
+    /**
+     * 插入任务-专家关联
+     */
+    @Insert("INSERT INTO task_experts (task_id, expert_username) VALUES (#{taskId}, #{expertUsername})")
+    void insertTaskExpert(@Param("taskId") Long taskId, @Param("expertUsername") String expertUsername);
+    
+    /**
+     * 插入任务-项目关联
+     */
+    @Insert("INSERT INTO task_projects (task_id, project_id) VALUES (#{taskId}, #{projectId})")
+    void insertTaskProject(@Param("taskId") Long taskId, @Param("projectId") Long projectId);
 } 

@@ -122,7 +122,10 @@ public class UserServiceImpl extends ServiceImpl<UserRepository, User> implement
             user = new User();
             user.setUsername(userDTO.getUsername());
             user.setCreateTime(new Date());
-            // 新用户需要加密密码
+            // 新用户必须有密码
+            if (userDTO.getPassword() == null || userDTO.getPassword().isEmpty()) {
+                throw new IllegalArgumentException("新用户必须设置密码");
+            }
             user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         } else {
             user = userRepository.findByUsername(userDTO.getUsername());

@@ -103,10 +103,15 @@ public class ProjectServiceTest {
         testScoreItem.setMaxScore(100);
         testScoreItem.setMinScore(0);
         testScoreItem.setWeight(1.0);
-        testScoreItem.setRole("EXPERT");
         testScoreItem.setDisplayOrder(1);
         
         scoreItemRepository.insert(testScoreItem);
+        
+        // 创建评分项角色关联
+        jdbcTemplate.update(
+            "INSERT INTO score_item_roles (score_item_id, role) VALUES (?, ?)",
+            testScoreItem.getId(), "EXPERT"
+        );
         
         // 创建测试ProjectDTO
         testProjectDTO = new ProjectDTO();
@@ -329,5 +334,103 @@ public class ProjectServiceTest {
         assertTrue(progress.containsKey("totalExperts"), "评分进度应包含totalExperts键");
         assertTrue(progress.containsKey("completedExperts"), "评分进度应包含completedExperts键");
         assertTrue(progress.containsKey("completionPercentage"), "评分进度应包含completionPercentage键");
+    }
+    
+    /**
+     * 测试获取项目评分详情
+     * 验证能够正确获取项目的评分详情信息
+     */
+    @Test
+    @DisplayName("测试获取项目评分详情")
+    public void testGetProjectScores() {
+        // 创建测试评分数据
+        jdbcTemplate.update(
+            "INSERT INTO scores (project_id, task_id, user_id, total_score, comments, create_time, update_time, is_draft) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            testProject.getId(), 1L, testUser.getUsername(), 85.0, "测试评分", new Date(), new Date(), false
+        );
+        
+        // 测试获取项目评分详情（不指定任务）
+        Map<String, Object> scores = projectService.getProjectScores(testProject.getId(), null);
+        
+        assertNotNull(scores, "项目评分详情不应为空");
+        assertTrue(scores.containsKey("project"), "应包含项目信息");
+        assertTrue(scores.containsKey("scoreStatistics"), "应包含评分统计");
+        assertTrue(scores.containsKey("scoreProgress"), "应包含评分进度");
+        
+        // 验证项目信息
+        @SuppressWarnings("unchecked")
+        Map<String, Object> project = (Map<String, Object>) scores.get("project");
+        assertNotNull(project, "项目信息不应为空");
+        assertEquals(testProject.getId(), project.get("id"), "项目ID应该匹配");
+        
+        // 验证评分统计
+        @SuppressWarnings("unchecked")
+        Map<String, Object> statistics = (Map<String, Object>) scores.get("scoreStatistics");
+        assertNotNull(statistics, "评分统计不应为空");
+        assertTrue(statistics.containsKey("totalScores"), "应包含总评分数量");
+        assertTrue(statistics.containsKey("averageScore"), "应包含平均分");
+        
+        // 验证评分进度
+        @SuppressWarnings("unchecked")
+        Map<String, Object> progress = (Map<String, Object>) scores.get("scoreProgress");
+        assertNotNull(progress, "评分进度不应为空");
+        assertTrue(progress.containsKey("totalExperts"), "应包含专家总数");
+        assertTrue(progress.containsKey("completedExperts"), "应包含已完成专家数");
+    }
+    
+    /**
+     * 测试获取项目评分详情（指定任务）
+     * 验证能够正确获取指定任务下的项目评分详情
+     */
+    @Test
+    @DisplayName("测试获取项目评分详情（指定任务）")
+    public void testGetProjectScores_WithTaskId() {
+        // 创建测试评分数据
+        jdbcTemplate.update(
+            "INSERT INTO scores (project_id, task_id, user_id, total_score, comments, create_time, update_time, is_draft) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            testProject.getId(), 2L, testUser.getUsername(), 90.0, "测试评分2", new Date(), new Date(), false
+        );
+        
+        // 测试获取项目评分详情（指定任务）
+        Map<String, Object> scores = projectService.getProjectScores(testProject.getId(), 2L);
+        
+        assertNotNull(scores, "项目评分详情不应为空");
+        assertTrue(scores.containsKey("project"), "应包含项目信息");
+        assertTrue(scores.containsKey("scoreStatistics"), "应包含评分统计");
+        assertTrue(scores.containsKey("scoreProgress"), "应包含评分进度");
+        
+        // 验证评分统计
+        @SuppressWarnings("unchecked")
+        Map<String, Object> statistics = (Map<String, Object>) scores.get("scoreStatistics");
+        assertNotNull(statistics, "评分统计不应为空");
+        assertEquals(1, statistics.get("totalScores"), "总评分数量应该为1");
+        assertEquals(90.0, statistics.get("averageScore"), "平均分应该为90.0");
+    }
+    
+    /**
+     * 测试获取项目评分详情 - 项目不存在
+     * 验证当项目不存在时返回空数据
+     */
+    @Test
+    @DisplayName("测试获取项目评分详情 - 项目不存在")
+    public void testGetProjectScores_ProjectNotFound() {
+        Map<String, Object> scores = projectService.getProjectScores(99999L, null);
+        
+        assertNotNull(scores, "返回结果不应为空");
+        assertTrue(scores.containsKey("project"), "应包含项目信息");
+        assertTrue(scores.containsKey("scoreStatistics"), "应包含评分统计");
+        assertTrue(scores.containsKey("scoreProgress"), "应包含评分进度");
+        
+        // 验证项目信息为空
+        @SuppressWarnings("unchecked")
+        Map<String, Object> project = (Map<String, Object>) scores.get("project");
+        assertNull(project, "项目信息应该为空");
+        
+        // 验证评分统计为空
+        @SuppressWarnings("unchecked")
+        Map<String, Object> statistics = (Map<String, Object>) scores.get("scoreStatistics");
+        assertNotNull(statistics, "评分统计不应为空");
+        assertEquals(0, statistics.get("totalScores"), "总评分数量应该为0");
+        assertEquals(0.0, statistics.get("averageScore"), "平均分应该为0.0");
     }
 }

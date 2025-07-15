@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计分析页面重构测试</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/statistics.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>统计分析页面重构测试</h1>
+            <div class="user-info">
+                <span id="currentUser">测试用户</span>
+                <button id="logoutBtn" class="btn btn-secondary">退出</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="test-section">
+                <h2>任务-项目-统计数据流测试</h2>
+                
+                <!-- 测试步骤指示器 -->
+                <div class="test-steps">
+                    <div class="step active" data-step="1">
+                        <span class="step-number">1</span>
+                        <span class="step-text">选择评审任务</span>
+                    </div>
+                    <div class="step" data-step="2">
+                        <span class="step-number">2</span>
+                        <span class="step-text">选择项目</span>
+                    </div>
+                    <div class="step" data-step="3">
+                        <span class="step-number">3</span>
+                        <span class="step-text">查看统计数据</span>
+                    </div>
+                </div>
+
+                <!-- 评审任务选择器 -->
+                <div class="task-selector">
+                    <label for="taskSelect">选择评审任务：</label>
+                    <select id="taskSelect">
+                        <option value="">请选择评审任务</option>
+                    </select>
+                    <div class="task-info" id="taskInfo" style="display: none;">
+                        <p><strong>任务信息：</strong><span id="taskDetails"></span></p>
+                    </div>
+                </div>
+
+                <!-- 项目选择器 -->
+                <div class="project-selector">
+                    <label for="projectSelect">选择项目：</label>
+                    <select id="projectSelect" disabled>
+                        <option value="">请先选择评审任务</option>
+                    </select>
+                    <div class="project-info" id="projectInfo" style="display: none;">
+                        <p><strong>项目信息：</strong><span id="projectDetails"></span></p>
+                    </div>
+                </div>
+
+                <!-- 数据流指示器 -->
+                <div class="data-flow-indicator">
+                    <i class="fas fa-arrow-right"></i>
+                    <span>任务 → 项目 → 统计数据</span>
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+
+                <!-- 测试结果区域 -->
+                <div class="test-results">
+                    <h3>测试结果</h3>
+                    <div class="result-item">
+                        <span class="result-label">任务加载：</span>
+                        <span class="result-status" id="taskLoadStatus">未测试</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">项目加载：</span>
+                        <span class="result-status" id="projectLoadStatus">未测试</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">统计数据加载：</span>
+                        <span class="result-status" id="statsLoadStatus">未测试</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">数据流完整性：</span>
+                        <span class="result-status" id="dataFlowStatus">未测试</span>
+                    </div>
+                </div>
+
+                <!-- 统计图表区域 -->
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3>项目得分排名</h3>
+                        <div id="rankingChart" class="chart"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>评分进度统计</h3>
+                        <div id="progressChart" class="chart"></div>
+                    </div>
+                </div>
+
+                <!-- 详细数据表格 -->
+                <div class="data-table-section">
+                    <h3>详细数据</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>项目名称</th>
+                                <th>总分</th>
+                                <th>评分项</th>
+                                <th>平均分</th>
+                                <th>最高分</th>
+                                <th>最低分</th>
+                                <th>评分完成率</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statisticsData">
+                            <!-- 数据将通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 测试控制按钮 -->
+                <div class="test-controls">
+                    <button id="runTest" class="btn btn-primary">运行完整测试</button>
+                    <button id="resetTest" class="btn btn-secondary">重置测试</button>
+                    <button id="exportResults" class="btn btn-success">导出测试结果</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/api/config.js"></script>
+    <script src="../js/api/env.js"></script>
+    <script src="../js/api/http.js"></script>
+    <script src="../js/api/api-service.js"></script>
+    <script src="../js/api/api-adapter.js"></script>
+    <script src="../js/utils/auth.js"></script>
+    <script src="../js/utils/error-handler.js"></script>
+    <script>
+        // 测试配置
+        const testConfig = {
+            currentStep: 1,
+            testResults: {
+                taskLoad: false,
+                projectLoad: false,
+                statsLoad: false,
+                dataFlow: false
+            }
+        };
+
+        // 初始化页面
+        $(document).ready(function() {
+            initializeTest();
+            bindEvents();
+        });
+
+        function initializeTest() {
+            // 模拟管理员登录
+            const mockUser = {
+                username: 'admin',
+                role: 'admin',
+                token: 'mock-token'
+            };
+            localStorage.setItem('userInfo', JSON.stringify(mockUser));
+            
+            // 加载任务列表
+            loadTasks();
+        }
+
+        function bindEvents() {
+            // 任务选择事件
+            $('#taskSelect').on('change', function() {
+                const taskId = $(this).val();
+                if (taskId) {
+                    testConfig.currentStep = 2;
+                    updateTestSteps();
+                    loadProjectsByTask(taskId);
+                    loadTaskInfo(taskId);
+                    testTaskLoad();
+                } else {
+                    resetProjectSelector();
+                }
+            });
+
+            // 项目选择事件
+            $('#projectSelect').on('change', function() {
+                const projectId = $(this).val();
+                const taskId = $('#taskSelect').val();
+                
+                if (projectId && taskId) {
+                    testConfig.currentStep = 3;
+                    updateTestSteps();
+                    loadProjectInfo(projectId, taskId);
+                    loadStatisticsByTask(taskId);
+                    testProjectLoad();
+                }
+            });
+
+            // 测试控制按钮
+            $('#runTest').on('click', runFullTest);
+            $('#resetTest').on('click', resetTest);
+            $('#exportResults').on('click', exportTestResults);
+        }
+
+        function loadTasks() {
+            // 模拟任务数据
+            const mockTasks = [
+                { id: 1, category: '技术创新评审', status: 'active' },
+                { id: 2, category: '项目质量评审', status: 'completed' },
+                { id: 3, category: '方案可行性评审', status: 'active' }
+            ];
+
+            const $select = $('#taskSelect');
+            $select.find('option:not(:first)').remove();
+            
+            mockTasks.forEach(task => {
+                const statusText = task.status === 'active' ? '(进行中)' : '(已完成)';
+                $select.append(`
+                    <option value="${task.id}">${task.category} ${statusText}</option>
+                `);
+            });
+        }
+
+        function loadProjectsByTask(taskId) {
+            // 模拟项目数据
+            const mockProjects = [
+                { id: 1, name: '智能交通系统', taskId: taskId },
+                { id: 2, name: '医疗数据分析平台', taskId: taskId },
+                { id: 3, name: '环保监测系统', taskId: taskId }
+            ];
+
+            const $select = $('#projectSelect');
+            $select.prop('disabled', false);
+            $select.find('option:not(:first)').remove();
+            
+            mockProjects.forEach(project => {
+                $select.append(`
+                    <option value="${project.id}">${project.name}</option>
+                `);
+            });
+        }
+
+        function loadTaskInfo(taskId) {
+            const taskInfo = {
+                1: { name: '技术创新评审', status: 'active', projects: 3, experts: 5 },
+                2: { name: '项目质量评审', status: 'completed', projects: 2, experts: 4 },
+                3: { name: '方案可行性评审', status: 'active', projects: 4, experts: 6 }
+            };
+
+            const info = taskInfo[taskId];
+            if (info) {
+                $('#taskDetails').text(`${info.name} | 状态: ${info.status} | 项目数: ${info.projects} | 专家数: ${info.experts}`);
+                $('#taskInfo').show();
+            }
+        }
+
+        function loadProjectInfo(projectId, taskId) {
+            const projectInfo = {
+                1: { name: '智能交通系统', description: '基于AI的交通流量优化系统' },
+                2: { name: '医疗数据分析平台', description: '医疗大数据分析处理平台' },
+                3: { name: '环保监测系统', description: '实时环境监测与预警系统' }
+            };
+
+            const info = projectInfo[projectId];
+            if (info) {
+                $('#projectDetails').text(`${info.name} | ${info.description}`);
+                $('#projectInfo').show();
+            }
+        }
+
+        function loadStatisticsByTask(taskId) {
+            // 模拟统计数据
+            const mockStatistics = [
+                {
+                    projectName: '智能交通系统',
+                    totalScore: 85.5,
+                    scoreItems: 5,
+                    avgScore: 85.5,
+                    maxScore: 92.0,
+                    minScore: 78.0,
+                    completionRate: 100
+                },
+                {
+                    projectName: '医疗数据分析平台',
+                    totalScore: 88.2,
+                    scoreItems: 5,
+                    avgScore: 88.2,
+                    maxScore: 95.0,
+                    minScore: 82.0,
+                    completionRate: 100
+                },
+                {
+                    projectName: '环保监测系统',
+                    totalScore: 82.1,
+                    scoreItems: 5,
+                    avgScore: 82.1,
+                    maxScore: 89.0,
+                    minScore: 75.0,
+                    completionRate: 80
+                }
+            ];
+
+            renderStatisticsTable(mockStatistics);
+            initializeCharts(mockStatistics);
+            testStatsLoad();
+            testDataFlow();
+        }
+
+        function renderStatisticsTable(statistics) {
+            const $tbody = $('#statisticsData');
+            $tbody.empty();
+
+            statistics.forEach(stat => {
+                $tbody.append(`
+                    <tr>
+                        <td>${stat.projectName}</td>
+                        <td>${stat.totalScore}</td>
+                        <td>${stat.scoreItems}</td>
+                        <td>${stat.avgScore}</td>
+                        <td>${stat.maxScore}</td>
+                        <td>${stat.minScore}</td>
+                        <td>${stat.completionRate}%</td>
+                    </tr>
+                `);
+            });
+        }
+
+        function initializeCharts(statistics) {
+            // 初始化排名图表
+            const rankingData = statistics.map(stat => ({
+                name: stat.projectName,
+                value: stat.avgScore
+            })).sort((a, b) => b.value - a.value);
+
+            const rankingChart = echarts.init(document.getElementById('rankingChart'));
+            rankingChart.setOption({
+                title: { text: '项目得分排名' },
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: rankingData.map(item => item.name) },
+                yAxis: { type: 'value' },
+                series: [{
+                    data: rankingData.map(item => item.value),
+                    type: 'bar',
+                    itemStyle: { color: '#3498db' }
+                }]
+            });
+
+            // 初始化进度图表
+            const progressData = statistics.map(stat => ({
+                name: stat.projectName,
+                value: stat.completionRate
+            }));
+
+            const progressChart = echarts.init(document.getElementById('progressChart'));
+            progressChart.setOption({
+                title: { text: '评分完成率' },
+                tooltip: { trigger: 'item' },
+                series: [{
+                    type: 'pie',
+                    radius: '50%',
+                    data: progressData.map(item => ({
+                        name: item.name,
+                        value: item.value
+                    })),
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            });
+        }
+
+        function updateTestSteps() {
+            $('.step').removeClass('active');
+            $(`.step[data-step="${testConfig.currentStep}"]`).addClass('active');
+        }
+
+        function testTaskLoad() {
+            testConfig.testResults.taskLoad = true;
+            $('#taskLoadStatus').text('通过').removeClass('failed').addClass('passed');
+        }
+
+        function testProjectLoad() {
+            testConfig.testResults.projectLoad = true;
+            $('#projectLoadStatus').text('通过').removeClass('failed').addClass('passed');
+        }
+
+        function testStatsLoad() {
+            testConfig.testResults.statsLoad = true;
+            $('#statsLoadStatus').text('通过').removeClass('failed').addClass('passed');
+        }
+
+        function testDataFlow() {
+            testConfig.testResults.dataFlow = true;
+            $('#dataFlowStatus').text('通过').removeClass('failed').addClass('passed');
+        }
+
+        function resetProjectSelector() {
+            $('#projectSelect').prop('disabled', true);
+            $('#projectSelect').html('<option value="">请先选择评审任务</option>');
+            $('#projectInfo').hide();
+            $('#statisticsData').empty();
+        }
+
+        function runFullTest() {
+            // 自动运行完整测试流程
+            $('#taskSelect').val('1').trigger('change');
+            setTimeout(() => {
+                $('#projectSelect').val('1').trigger('change');
+            }, 1000);
+        }
+
+        function resetTest() {
+            testConfig.currentStep = 1;
+            testConfig.testResults = {
+                taskLoad: false,
+                projectLoad: false,
+                statsLoad: false,
+                dataFlow: false
+            };
+
+            updateTestSteps();
+            $('#taskSelect').val('');
+            resetProjectSelector();
+            $('#taskInfo').hide();
+            $('#taskLoadStatus, #projectLoadStatus, #statsLoadStatus, #dataFlowStatus')
+                .text('未测试').removeClass('passed failed');
+        }
+
+        function exportTestResults() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                testResults: testConfig.testResults,
+                summary: {
+                    totalTests: 4,
+                    passedTests: Object.values(testConfig.testResults).filter(Boolean).length,
+                    failedTests: Object.values(testConfig.testResults).filter(v => !v).length
+                }
+            };
+
+            const dataStr = JSON.stringify(results, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'statistics-test-results.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+
+    <style>
+        .test-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-steps {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #dee2e6;
+            z-index: 1;
+        }
+
+        .step.active:not(:last-child)::after {
+            background: #007bff;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #dee2e6;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            z-index: 2;
+            position: relative;
+        }
+
+        .step.active .step-number {
+            background: #007bff;
+            color: white;
+        }
+
+        .step-text {
+            font-size: 14px;
+            color: #6c757d;
+            text-align: center;
+        }
+
+        .step.active .step-text {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .test-results {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: 500;
+        }
+
+        .result-status {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .result-status.passed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .result-status.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+    </style>
+</body>
+</html> 

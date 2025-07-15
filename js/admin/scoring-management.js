@@ -40,7 +40,7 @@ function initializeUserInfo() {
 }
 
 function loadProjects() {
-    mockApi.getProjects()
+    api.getProjects()
         .then(response => {
             if (response.success) {
                 const $select = $('#projectSelect');
@@ -64,7 +64,7 @@ async function loadProjectScores(projectId) {
     try {
         showLoading();
         
-        const response = await mockApi.getProjectScores(projectId);
+        const response = await api.getProjectScores(projectId);
         
         if (response.success) {
             const data = response.data;
@@ -239,7 +239,7 @@ function checkScoringDelay() {
     const projectId = $('#projectSelect').val();
     if (!projectId) return;
 
-    mockApi.getProjectScores(projectId)
+    api.getProjectScores(projectId)
         .then(response => {
             if (response.success) {
                 const threshold = 30 * 60 * 1000; // 30分钟
@@ -362,7 +362,7 @@ function detectAbnormalScores() {
     const projectId = $('#projectSelect').val();
     if (!projectId) return;
 
-    mockApi.getProjectScores(projectId)
+    api.getProjectScores(projectId)
         .then(response => {
             if (response.success) {
                 const scores = response.data.details;

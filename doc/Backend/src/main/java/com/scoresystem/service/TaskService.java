@@ -2,6 +2,7 @@ package com.scoresystem.service;
 
 import com.scoresystem.dto.ScoreSystemModels.TaskDTO;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 任务服务接口
@@ -63,10 +64,27 @@ public interface TaskService {
     
     /**
      * 完成评审任务
-     * 
-     * @param taskId 任务ID
-     * @param username 用户名
-     * @return 更新后的任务DTO
      */
     TaskDTO completeTask(Long taskId, String username);
+    
+    /**
+     * 检查任务完成状态
+     */
+    Map<String, Object> checkTaskCompletionStatus(Long taskId);
+
+    /**
+     * 获取所有评审任务记录
+     * 
+     * @param includeProjectCount 是否包含项目数量
+     * @return 任务DTO列表
+     */
+    List<TaskDTO> getAllSimpleTasks(boolean includeProjectCount);
+
+    /**
+     * 获取任务的项目进度和分数
+     * @param taskId 任务ID
+     * @return 项目进度和分数
+     */
+    List<Map<String, Object>> getTaskProjectProgressAndScores(Long taskId);
+
 } 

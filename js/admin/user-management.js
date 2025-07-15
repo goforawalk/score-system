@@ -177,8 +177,8 @@ function handleUserSubmit(e) {
     }
 
     const apiCall = username
-        ? mockApi.updateUser(username, userData)
-        : mockApi.addUser(userData);
+        ? api.updateUser(username, userData)
+        : api.addUser(userData);
 
     // 显示加载状态
     const $submitBtn = $('#userForm button[type="submit"]');
@@ -255,7 +255,7 @@ function deleteUser(username) {
     }
 
     if (confirm('确定要删除此用户吗？')) {
-        mockApi.deleteUser(username)
+        api.deleteUser(username)
             .then(response => {
                 if (response.success) {
                     showMessage('用户删除成功！', 'success');
@@ -276,7 +276,7 @@ function importUsers(file) {
         const users = JSON.parse(e.target.result);
         for (const user of users) {
             try {
-                await mockApi.addUser(user);
+                await api.addUser(user);
             } catch (error) {
                 console.error(`Failed to import user ${user.username}:`, error);
             }
@@ -287,7 +287,7 @@ function importUsers(file) {
 }
 
 function exportUsers() {
-    mockApi.getUsers()
+    api.getUsers()
         .then(response => {
             if (response.success) {
                 const users = response.data.map(user => ({
@@ -362,7 +362,7 @@ function handleBatchDisable() {
         let errorCount = 0;
         
         const promises = selectedUsers.map(username => 
-            mockApi.updateUser(username, { status: 'inactive' })
+            api.updateUser(username, { status: 'inactive' })
                 .then(response => {
                     if (response.success) {
                         successCount++;
@@ -400,7 +400,7 @@ function handleBatchDelete() {
         let errorCount = 0;
         
         const promises = selectedUsers.map(username => 
-            mockApi.deleteUser(username)
+            api.deleteUser(username)
                 .then(response => {
                     if (response.success) {
                         successCount++;

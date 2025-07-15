@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评分提交调试测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .config { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .config input, .config select { margin: 5px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .log { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 6px; font-family: monospace; max-height: 400px; overflow-y: auto; }
+        .log-entry { margin-bottom: 5px; }
+        .log-info { color: #87ceeb; }
+        .log-success { color: #90ee90; }
+        .log-error { color: #ff6b6b; }
+        .data-preview { background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .data-preview pre { margin: 0; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 评分提交调试测试</h1>
+            <p>专门用于调试评分提交API的HTTP 500错误</p>
+        </div>
+        
+        <div class="config">
+            <h3>测试配置</h3>
+            <label>后端API地址: <input type="text" id="baseUrl" value="http://localhost:8080"></label><br>
+            <label>API前缀: <input type="text" id="apiPrefix" value="/api"></label><br>
+            <label>项目ID: <input type="number" id="projectId" value="734"></label><br>
+            <label>任务ID: <input type="number" id="taskId" value="539"></label><br>
+            <label>用户名: <input type="text" id="username" value="admin"></label>
+        </div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button id="testScoreSubmission" class="btn btn-primary">🚀 测试评分提交</button>
+            <button id="clearLog" class="btn btn-success">🗑️ 清空日志</button>
+        </div>
+        
+        <div class="data-preview">
+            <h4>评分数据结构预览：</h4>
+            <pre id="scoreDataPreview"></pre>
+        </div>
+        
+        <div class="log" id="logContainer">
+            <div class="log-entry log-info">等待开始测试...</div>
+        </div>
+    </div>
+
+    <script>
+        let testData = {
+            userInfo: null,
+            taskId: null,
+            projectId: null
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `${prefix} [${timestamp}] ${message}`;
+            document.getElementById('logContainer').appendChild(logEntry);
+            document.getElementById('logContainer').scrollTop = document.getElementById('logContainer').scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '<div class="log-entry log-info">日志已清空...</div>';
+        }
+
+        function buildApiUrl(path) {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const apiPrefix = document.getElementById('apiPrefix').value;
+            return `${baseUrl}${apiPrefix}${path}`;
+        }
+
+        function updateScoreDataPreview() {
+            const projectId = parseInt(document.getElementById('projectId').value);
+            const taskId = parseInt(document.getElementById('taskId').value);
+            const username = document.getElementById('username').value;
+            
+            const scoreData = {
+                projectId: projectId,
+                taskId: taskId,
+                username: username,
+                scores: {
+                    1: 85
+                },
+                totalScore: 85.0,
+                comments: '调试测试评分',
+                isDraft: false
+            };
+            
+            document.getElementById('scoreDataPreview').textContent = JSON.stringify(scoreData, null, 2);
+        }
+
+        async function httpRequest(url, options = {}) {
+            const defaultOptions = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            };
+
+            const finalOptions = { ...defaultOptions, ...options };
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), finalOptions.timeout);
+                
+                const response = await fetch(url, {
+                    ...finalOptions,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}\n响应内容: ${errorText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                throw new Error(`请求失败: ${error.message}`);
+            }
+        }
+
+        async function testScoreSubmission() {
+            clearLog();
+            log('开始评分提交调试测试...', 'info');
+            
+            const projectId = parseInt(document.getElementById('projectId').value);
+            const taskId = parseInt(document.getElementById('taskId').value);
+            const username = document.getElementById('username').value;
+            
+            let scoreData = null; // 声明在函数顶部
+            
+            try {
+                // 首先尝试获取项目详情，看是否包含评分项信息
+                log('获取项目详情...', 'info');
+                try {
+                    const projectResponse = await httpRequest(buildApiUrl(`/projects/${projectId}`));
+                    
+                    if (projectResponse.success && projectResponse.data) {
+                        const project = projectResponse.data;
+                        log(`项目详情: ${JSON.stringify(project, null, 2)}`, 'info');
+                        
+                        // 检查项目是否包含评分项信息
+                        let scoreItems = [];
+                        if (project.scoreItems && Array.isArray(project.scoreItems)) {
+                            scoreItems = project.scoreItems;
+                        } else if (project.scoreGroups) {
+                            // 如果有scoreGroups，尝试从中提取评分项
+                            Object.values(project.scoreGroups).forEach(group => {
+                                if (Array.isArray(group)) {
+                                    scoreItems = scoreItems.concat(group);
+                                }
+                            });
+                        }
+                        
+                        if (scoreItems.length > 0) {
+                            log(`使用项目评分项: ${JSON.stringify(scoreItems.map(item => ({id: item.id, name: item.name})))}`, 'info');
+                            
+                            // 构建完整的评分数据，包含每个评分项的具体分数
+                            const scores = {};
+                            let totalScore = 0;
+                            let scoreCount = 0;
+                            
+                            // 使用实际的评分项ID
+                            scoreItems.forEach((item, index) => {
+                                const score = 85; // 每个评分项给85分
+                                scores[item.id] = score;
+                                totalScore += score;
+                                scoreCount++;
+                            });
+                            
+                            // 计算平均分
+                            const averageScore = scoreCount > 0 ? totalScore / scoreCount : 0;
+                            
+                            scoreData = {
+                                projectId: projectId,
+                                taskId: taskId,
+                                username: username,
+                                scores: scores, // 包含每个评分项的具体分数
+                                totalScore: averageScore, // 计算出的平均分
+                                comments: '调试测试评分 - 包含各评分项详细分数',
+                                isDraft: false
+                            };
+                        }
+                    }
+                } catch (projectError) {
+                    log(`获取项目详情失败: ${projectError.message}，使用默认评分项`, 'info');
+                }
+                
+                // 如果没有获取到项目详情或评分项，使用默认值
+                if (!scoreData) {
+                    log('使用默认评分项ID', 'info');
+                    const defaultScoreItems = [
+                        { id: 1, name: '技术实现' },
+                        { id: 2, name: '用户体验' },
+                        { id: 3, name: '代码质量' },
+                        { id: 4, name: '文档质量' }
+                    ];
+                    
+                    const scores = {};
+                    defaultScoreItems.forEach((item, index) => {
+                        scores[item.id] = 85; // 使用默认评分项ID作为键
+                    });
+                    
+                    scoreData = {
+                        projectId: projectId,
+                        taskId: taskId,
+                        username: username,
+                        scores: scores,
+                        totalScore: 85.0,
+                        comments: '调试测试评分',
+                        isDraft: false
+                    };
+                }
+                
+                log(`评分数据: ${JSON.stringify(scoreData, null, 2)}`, 'info');
+                log(`API URL: ${buildApiUrl('/scores')}`, 'info');
+                
+                const response = await httpRequest(buildApiUrl('/scores'), {
+                    method: 'POST',
+                    body: JSON.stringify(scoreData)
+                });
+                
+                log('✅ 评分提交成功！', 'success');
+                log(`响应数据: ${JSON.stringify(response, null, 2)}`, 'success');
+                
+            } catch (error) {
+                log(`❌ 评分提交失败: ${error.message}`, 'error');
+                
+                // 尝试不同的数据结构
+                log('尝试不同的数据结构...', 'info');
+                
+                // 尝试1: 移除taskId
+                try {
+                    const scoreDataWithoutTaskId = { ...scoreData };
+                    delete scoreDataWithoutTaskId.taskId;
+                    log(`尝试1 - 移除taskId: ${JSON.stringify(scoreDataWithoutTaskId, null, 2)}`, 'info');
+                    
+                    const response1 = await httpRequest(buildApiUrl('/scores'), {
+                        method: 'POST',
+                        body: JSON.stringify(scoreDataWithoutTaskId)
+                    });
+                    
+                    log('✅ 尝试1成功（移除taskId）', 'success');
+                    log(`响应: ${JSON.stringify(response1, null, 2)}`, 'success');
+                    return;
+                } catch (error1) {
+                    log(`❌ 尝试1失败: ${error1.message}`, 'error');
+                }
+                
+                // 尝试2: 修改scores格式为数组
+                try {
+                    const scoreDataWithArrayScores = { ...scoreData };
+                    scoreDataWithArrayScores.scores = [
+                        { itemId: 1, score: 85 },
+                        { itemId: 2, score: 85 },
+                        { itemId: 3, score: 85 },
+                        { itemId: 4, score: 85 }
+                    ];
+                    log(`尝试2 - 数组格式scores: ${JSON.stringify(scoreDataWithArrayScores, null, 2)}`, 'info');
+                    
+                    const response2 = await httpRequest(buildApiUrl('/scores'), {
+                        method: 'POST',
+                        body: JSON.stringify(scoreDataWithArrayScores)
+                    });
+                    
+                    log('✅ 尝试2成功（数组格式scores）', 'success');
+                    log(`响应: ${JSON.stringify(response2, null, 2)}`, 'success');
+                    return;
+                } catch (error2) {
+                    log(`❌ 尝试2失败: ${error2.message}`, 'error');
+                }
+                
+                // 尝试3: 简化数据结构
+                try {
+                    const simpleScoreData = {
+                        projectId: projectId,
+                        username: username,
+                        totalScore: 85.0,
+                        comments: '简化测试评分'
+                    };
+                    log(`尝试3 - 简化数据结构: ${JSON.stringify(simpleScoreData, null, 2)}`, 'info');
+                    
+                    const response3 = await httpRequest(buildApiUrl('/scores'), {
+                        method: 'POST',
+                        body: JSON.stringify(simpleScoreData)
+                    });
+                    
+                    log('✅ 尝试3成功（简化数据结构）', 'success');
+                    log(`响应: ${JSON.stringify(response3, null, 2)}`, 'success');
+                    return;
+                } catch (error3) {
+                    log(`❌ 尝试3失败: ${error3.message}`, 'error');
+                }
+                
+                log('所有尝试都失败了，请检查后端日志获取更多信息', 'error');
+            }
+        }
+
+        document.getElementById('testScoreSubmission').addEventListener('click', testScoreSubmission);
+        document.getElementById('clearLog').addEventListener('click', clearLog);
+
+        // 初始化数据预览
+        document.addEventListener('DOMContentLoaded', function() {
+            updateScoreDataPreview();
+            
+            // 监听输入变化
+            document.getElementById('projectId').addEventListener('input', updateScoreDataPreview);
+            document.getElementById('taskId').addEventListener('input', updateScoreDataPreview);
+            document.getElementById('username').addEventListener('input', updateScoreDataPreview);
+            
+            log('评分提交调试测试页面已加载', 'info');
+            log('请配置参数并点击"测试评分提交"按钮', 'info');
+        });
+    </script>
+</body>
+</html> 

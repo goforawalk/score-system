@@ -156,7 +156,7 @@ public class ScoreSystemControllerTest {
                 .content(objectMapper.writeValueAsString(testUser)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("保存用户成功"))
+                .andExpect(jsonPath("$.message").value("创建用户成功"))
                 .andExpect(jsonPath("$.data.username").value("testuser"));
     }
 
@@ -203,7 +203,7 @@ public class ScoreSystemControllerTest {
                 .content(objectMapper.writeValueAsString(testProject)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("保存项目成功"))
+                .andExpect(jsonPath("$.message").value("创建项目成功"))
                 .andExpect(jsonPath("$.data.id").value(1));
     }
 
@@ -258,6 +258,22 @@ public class ScoreSystemControllerTest {
     }
 
     /**
+     * 测试获取任务列表接口
+     */
+    @Test
+    @DisplayName("测试获取任务列表接口")
+    public void testGetTasks() throws Exception {
+        List<TaskDTO> tasks = Collections.singletonList(testTask);
+        when(taskService.getAllTasks()).thenReturn(tasks);
+
+        mockMvc.perform(get("/tasks"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("获取任务列表成功"))
+                .andExpect(jsonPath("$.data[0].id").value(1));
+    }
+
+    /**
      * 测试提交评分接口
      */
     @Test
@@ -265,8 +281,14 @@ public class ScoreSystemControllerTest {
     public void testSubmitScore() throws Exception {
         ScoreRequest scoreRequest = new ScoreRequest();
         scoreRequest.setProjectId(1L);
+        scoreRequest.setTaskId(1L);
         scoreRequest.setUsername("testuser");
         scoreRequest.setTotalScore(85.5);
+        scoreRequest.setComments("测试评分");
+        scoreRequest.setIsDraft(false);
+        Map<Long, Integer> scores = new HashMap<>();
+        scores.put(1L, 85);
+        scoreRequest.setScores(scores);
 
         when(scoreService.saveScore(any(ScoreRequest.class))).thenReturn(testScore);
 
@@ -280,11 +302,11 @@ public class ScoreSystemControllerTest {
     }
 
     /**
-     * 测试获取评分历史接口
+     * 测试获取评分历史接口 - 不指定任务
      */
     @Test
-    @DisplayName("测试获取评分历史接口")
-    public void testGetScoreHistory() throws Exception {
+    @DisplayName("测试获取评分历史接口 - 不指定任务")
+    public void testGetScoreHistory_WithoutTaskId() throws Exception {
         List<ScoreDTO> scores = Collections.singletonList(testScore);
         when(scoreService.getScoreHistory(1L, "testuser")).thenReturn(scores);
 
@@ -298,22 +320,92 @@ public class ScoreSystemControllerTest {
     }
 
     /**
+     * 测试获取评分历史接口 - 指定任务
+     */
+    @Test
+    @DisplayName("测试获取评分历史接口 - 指定任务")
+    public void testGetScoreHistory_WithTaskId() throws Exception {
+        List<ScoreDTO> scores = Collections.singletonList(testScore);
+        when(scoreService.getScoreHistory(1L, 2L, "testuser")).thenReturn(scores);
+
+        mockMvc.perform(get("/scores/history")
+                .param("projectId", "1")
+                .param("username", "testuser")
+                .param("taskId", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("获取评分历史成功"))
+                .andExpect(jsonPath("$.data[0].totalScore").value(85.5));
+    }
+
+    /**
      * 测试获取统计数据接口
      */
     @Test
     @DisplayName("测试获取统计数据接口")
     public void testGetStatistics() throws Exception {
-        Map<String, Object> statistics = new HashMap<>();
-        statistics.put("totalProjects", 10);
-        statistics.put("completedTasks", 5);
+        List<Map<String, Object>> statistics = new ArrayList<>();
+        Map<String, Object> projectStat = new HashMap<>();
+        projectStat.put("id", 1L);
+        projectStat.put("name", "测试项目");
+        projectStat.put("status", "active");
+        projectStat.put("score_count", 5);
+        projectStat.put("avg_score", 85.0);
+        projectStat.put("min_score", 80.0);
+        projectStat.put("max_score", 90.0);
+        statistics.add(projectStat);
         
-        when(statisticsService.getStatistics()).thenReturn(statistics);
+        when(statisticsService.getProjectStatistics()).thenReturn(statistics);
 
         mockMvc.perform(get("/statistics"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("获取统计数据成功"))
-                .andExpect(jsonPath("$.data.totalProjects").value(10))
-                .andExpect(jsonPath("$.data.completedTasks").value(5));
+                .andExpect(jsonPath("$.data[0].id").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("测试项目"))
+                .andExpect(jsonPath("$.data[0].status").value("active"))
+                .andExpect(jsonPath("$.data[0].score_count").value(5))
+                .andExpect(jsonPath("$.data[0].avg_score").value(85.0))
+                .andExpect(jsonPath("$.data[0].min_score").value(80.0))
+                .andExpect(jsonPath("$.data[0].max_score").value(90.0));
+    }
+
+    /**
+     * 测试获取前端统计数据接口
+     */
+    @Test
+    @DisplayName("测试获取前端统计数据接口")
+    public void testGetFrontendStatistics() throws Exception {
+        List<Map<String, Object>> statistics = new ArrayList<>();
+        Map<String, Object> projectStat = new HashMap<>();
+        projectStat.put("id", 1L);
+        projectStat.put("name", "测试项目");
+        projectStat.put("totalScore", 85.0);
+        projectStat.put("completionRate", 80.0);
+        
+        List<Map<String, Object>> itemStats = new ArrayList<>();
+        Map<String, Object> itemStat = new HashMap<>();
+        itemStat.put("name", "评分项1");
+        itemStat.put("weight", 50);
+        itemStat.put("avgScore", 85.0);
+        itemStat.put("maxScore", 90.0);
+        itemStat.put("minScore", 80.0);
+        itemStats.add(itemStat);
+        projectStat.put("itemStats", itemStats);
+        
+        statistics.add(projectStat);
+        
+        when(statisticsService.getFrontendStatistics()).thenReturn(statistics);
+
+        mockMvc.perform(get("/statistics/frontend"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("获取前端统计数据成功"))
+                .andExpect(jsonPath("$.data[0].id").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("测试项目"))
+                .andExpect(jsonPath("$.data[0].totalScore").value(85.0))
+                .andExpect(jsonPath("$.data[0].completionRate").value(80.0))
+                .andExpect(jsonPath("$.data[0].itemStats[0].name").value("评分项1"))
+                .andExpect(jsonPath("$.data[0].itemStats[0].avgScore").value(85.0));
     }
 }

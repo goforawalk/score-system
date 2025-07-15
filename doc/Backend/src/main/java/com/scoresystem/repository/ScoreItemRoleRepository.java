@@ -72,4 +72,10 @@ public interface ScoreItemRoleRepository extends BaseMapper<ScoreItemRole> {
             "JOIN score_items si ON sir.score_item_id = si.id " +
             "WHERE si.project_id = #{projectId} AND sir.role = #{role}")
     List<Long> findScoreItemIdsByProjectIdAndRole(@Param("projectId") Long projectId, @Param("role") String role);
+    
+    /**
+     * 删除所有评分项角色关联
+     */
+    @Delete("DELETE FROM score_item_roles")
+    void deleteAllScoreItemRoles();
 } 

@@ -814,6 +814,65 @@ const mockApi = {
         });
     },
     
+    // 获取前端统计页面需要的完整统计数据
+    getFrontendStatistics: function(taskId) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const statistics = this.projects.map(project => {
+                    const scores = this.scores.filter(s => s.projectId === project.id);
+                    const expertsCount = this.users.filter(u => u.role.startsWith('expert')).length;
+                    const scoredCount = new Set(scores.map(s => s.username)).size;
+                    
+                    // 计算各评分项的统计数据 - 支持新的scoreGroups结构
+                    let itemStats = [];
+                    if (project.scoreGroups) {
+                        Object.values(project.scoreGroups).forEach(group => {
+                            if (Array.isArray(group)) {
+                                group.forEach((item, index) => {
+                                    const itemScores = scores.map(s => s.scores.find(i => i.itemId === index)?.score || 0);
+                                    itemStats.push({
+                                        name: item.name,
+                                        weight: item.weight,
+                                        avgScore: itemScores.length ? 
+                                            itemScores.reduce((a, b) => a + b, 0) / itemScores.length : 0,
+                                        maxScore: itemScores.length ? Math.max(...itemScores) : 0,
+                                        minScore: itemScores.length ? Math.min(...itemScores) : 0
+                                    });
+                                });
+                            }
+                        });
+                    } else if (project.scoreItems) {
+                        // 兼容旧的scoreItems结构
+                        itemStats = project.scoreItems.map((item, index) => {
+                        const itemScores = scores.map(s => s.scores.find(i => i.itemId === index)?.score || 0);
+                        return {
+                            name: item.name,
+                            weight: item.weight,
+                            avgScore: itemScores.length ? 
+                                itemScores.reduce((a, b) => a + b, 0) / itemScores.length : 0,
+                            maxScore: itemScores.length ? Math.max(...itemScores) : 0,
+                            minScore: itemScores.length ? Math.min(...itemScores) : 0
+                        };
+                    });
+                    }
+
+                    return {
+                        id: project.id,
+                        name: project.name,
+                        totalScore: this.calculateAverageScore(project.id),
+                        completionRate: (scoredCount / expertsCount) * 100,
+                        itemStats: itemStats
+                    };
+                });
+
+                resolve({
+                    success: true,
+                    data: statistics
+                });
+            }, 300);
+        });
+    },
+    
     // 导出Excel数据
     exportToExcel: function(projectId) {
         return new Promise((resolve) => {

@@ -123,12 +123,15 @@ public class ScoreSystemModels {
         private String status;
         private List<String> experts;
         private List<ProjectDTO> projects;
+        private List<String> projectIds;
         
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         private Date startTime;
         
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         private Date endTime;
+        
+        private Integer projectCount;
     }
 
     /**
@@ -139,6 +142,7 @@ public class ScoreSystemModels {
     @AllArgsConstructor
     public static class ScoreRequest {
         private Long projectId;
+        private Long taskId;
         private String username;
         private Map<Long, Integer> scores;
         private Double totalScore;
@@ -155,6 +159,7 @@ public class ScoreSystemModels {
     public static class ScoreDTO {
         private Long id;
         private Long projectId;
+        private Long taskId;
         private String username;
         private Map<Long, Integer> scores;
         private Double totalScore;

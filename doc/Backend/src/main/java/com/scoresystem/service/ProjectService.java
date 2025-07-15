@@ -58,6 +58,11 @@ public interface ProjectService {
     List<ScoreItemDTO> getScoreItemsByUserRole(Long projectId, String username);
     
     /**
+     * 根据项目ID获取评分项
+     */
+    List<ScoreItemDTO> getScoreItemsByProjectId(Long projectId);
+    
+    /**
      * 批量更新项目状态
      * 
      * @param projectIds 项目ID列表
@@ -86,4 +91,35 @@ public interface ProjectService {
      * @return 评分进度数据
      */
     Map<String, Object> getProjectProgress(Long projectId);
+    
+    /**
+     * 获取项目评分进度（指定任务）
+     * 
+     * @param projectId 项目ID
+     * @param taskId 任务ID
+     * @return 评分进度数据
+     */
+    Map<String, Object> getProjectProgress(Long projectId, Long taskId);
+    
+    /**
+     * 获取项目评分详情
+     * 
+     * @param projectId 项目ID
+     * @param taskId 任务ID（可选）
+     * @return 项目评分详情
+     */
+    Map<String, Object> getProjectScores(Long projectId, Long taskId);
+
+    /**
+     * 获取所有简化项目
+     */
+    List<ProjectDTO> getAllSimpleProjects();
+
+    /**
+     * 根据任务ID获取简化项目列表
+     * 
+     * @param taskId 任务ID
+     * @return 项目DTO列表
+     */
+    List<ProjectDTO> getSimpleProjectsByTask(Long taskId);
 } 

@@ -27,6 +27,9 @@ public class Score {
     @TableField("project_id")
     private Long projectId;
     
+    @TableField("task_id")
+    private Long taskId;
+    
     @TableField("user_id")
     private String userId;
     
