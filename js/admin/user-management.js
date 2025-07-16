@@ -48,8 +48,7 @@ function initializeUserInfo() {
     $('#currentUser').text(userInfo.username);
     $('#logoutBtn').on('click', function(e) {
         e.preventDefault();
-        auth.removeUserInfo();
-        window.location.href = '../index.html';
+        logoutWithCacheConfirm();
     });
 }
 

@@ -118,16 +118,7 @@ function initializeUserInfo() {
     $('#currentUser').text(userInfo.username);
     $('#logoutBtn').on('click', function(e) {
         e.preventDefault();
-        if (confirm('是否清空本地缓存数据？\n选择"确定"将清空所有缓存，避免影响下一次测试。\n选择"取消"将保留缓存数据。')) {
-            // 清空所有相关缓存数据
-            localStorage.clear();
-            console.log('已清空所有缓存数据');
-        } else {
-            // 只清除登录信息
-        auth.removeUserInfo();
-            console.log('仅退出登录，未清空其他缓存');
-        }
-        window.location.href = '../index.html';
+        logoutWithCacheConfirm();
     });
 }
 
