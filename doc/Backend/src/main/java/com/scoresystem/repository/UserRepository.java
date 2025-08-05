@@ -78,4 +78,20 @@ public interface UserRepository extends BaseMapper<User> {
      */
     @Select("SELECT COUNT(*) FROM users WHERE create_time BETWEEN #{startDate} AND #{endDate}")
     int countByCreateTimeBetween(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+
+    /**
+     * 根据用户名列表查找用户列表
+     * 
+     * @param usernames 用户名列表
+     * @return 用户实体列表
+     */
+    @Select({
+        "<script>",
+        "SELECT * FROM users WHERE username IN",
+        "<foreach collection='usernames' item='item' open='(' separator=',' close=')'>",
+        "#{item}",
+        "</foreach>",
+        "</script>"
+    })
+    List<User> findByUsernames(@Param("usernames") List<String> usernames);
 }

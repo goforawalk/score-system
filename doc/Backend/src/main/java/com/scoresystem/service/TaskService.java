@@ -68,9 +68,36 @@ public interface TaskService {
     TaskDTO completeTask(Long taskId, String username);
     
     /**
+     * 重置评审任务
+     * 
+     * @param taskId 任务ID
+     * @return 重置后的任务DTO
+     */
+    TaskDTO resetTask(Long taskId);
+
+    /**
+     * 调整任务项目顺序（仅手动切换模式且项目未评审时可用）
+     */
+    TaskDTO reorderTaskProjects(Long taskId, List<Long> projectIds);
+
+    /**
+     * 获取任务项目顺序调整权限状态
+     */
+    Map<String, Object> getReorderPermission(Long taskId);
+    
+    /**
      * 检查任务完成状态
      */
     Map<String, Object> checkTaskCompletionStatus(Long taskId);
+
+    /**
+     * 更新任务切换模式
+     * 
+     * @param taskId 任务ID
+     * @param switchMode 切换模式（1=自动切换，2=手动切换）
+     * @return 更新后的任务DTO
+     */
+    TaskDTO updateTaskSwitchMode(Long taskId, Integer switchMode);
 
     /**
      * 获取所有评审任务记录
@@ -87,4 +114,26 @@ public interface TaskService {
      */
     List<Map<String, Object>> getTaskProjectProgressAndScores(Long taskId);
 
+    /**
+     * 获取项目顺序
+     * @param taskId 任务ID
+     * @param projectId 项目ID
+     * @return 项目顺序
+     */
+    Integer getProjectOrder(Long taskId, Long projectId);
+
+    /**
+     * 获取下一个项目ID
+     * @param taskId 任务ID
+     * @param currentOrder 当前项目顺序
+     * @return 下一个项目ID
+     */
+    Long getNextProjectId(Long taskId, int currentOrder);
+
+    /**
+     * 标记项目为已评审
+     * @param taskId 任务ID
+     * @param projectId 项目ID
+     */
+    void markProjectReviewed(Long taskId, Long projectId);
 } 

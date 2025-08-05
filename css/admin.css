@@ -112,3 +112,174 @@
 .quick-actions .btn {
     margin-right: 16px;
 }
+
+/* 项目顺序调整功能样式 */
+.reorder-section {
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.reorder-section h3 {
+    margin: 0 0 12px 0;
+    color: #262626;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.reorder-tip {
+    margin: 0 0 16px 0;
+    color: #8c8c8c;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.project-reorder-list {
+    min-height: 100px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    background: #fafafa;
+    margin-bottom: 16px;
+}
+
+.reorder-project-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: move;
+    transition: background-color 0.2s;
+}
+
+.reorder-project-item:last-child {
+    border-bottom: none;
+}
+
+.reorder-project-item:hover {
+    background: #f5f5f5;
+}
+
+.reorder-project-item .handle {
+    color: #bfbfbf;
+    font-size: 16px;
+    margin-right: 12px;
+    cursor: move;
+    user-select: none;
+}
+
+.reorder-project-item .project-name {
+    flex: 1;
+    font-size: 14px;
+    color: #262626;
+    font-weight: 500;
+}
+
+.reorder-project-item .project-order {
+    color: #8c8c8c;
+    font-size: 12px;
+    font-weight: 600;
+    background: #f0f0f0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 30px;
+    text-align: center;
+}
+
+.reorder-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.reorder-actions .btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reorder-actions .btn-primary {
+    background: #1890ff;
+    border-color: #1890ff;
+    color: #fff;
+}
+
+.reorder-actions .btn-primary:hover {
+    background: #40a9ff;
+    border-color: #40a9ff;
+}
+
+.reorder-actions .btn-primary:disabled {
+    background: #d9d9d9;
+    border-color: #d9d9d9;
+    color: #bfbfbf;
+    cursor: not-allowed;
+}
+
+.reorder-actions .btn-secondary {
+    background: #fff;
+    border-color: #d9d9d9;
+    color: #595959;
+}
+
+.reorder-actions .btn-secondary:hover {
+    background: #f5f5f5;
+    border-color: #40a9ff;
+    color: #40a9ff;
+}
+
+.no-projects {
+    text-align: center;
+    color: #8c8c8c;
+    font-size: 14px;
+    padding: 40px 20px;
+    font-style: italic;
+}
+
+/* 拖拽排序相关样式 */
+.ui-sortable-placeholder {
+    background: #f0f8ff;
+    border: 2px dashed #1890ff;
+    height: 50px;
+    margin: 4px 0;
+    border-radius: 4px;
+}
+
+.ui-sortable-helper {
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    transform: rotate(2deg);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .reorder-section {
+        padding: 16px;
+        margin-top: 12px;
+    }
+    
+    .reorder-project-item {
+        padding: 10px 12px;
+    }
+    
+    .reorder-project-item .project-name {
+        font-size: 13px;
+    }
+    
+    .reorder-actions {
+        flex-direction: column;
+    }
+    
+    .reorder-actions .btn {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+}

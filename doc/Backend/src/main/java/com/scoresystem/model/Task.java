@@ -37,6 +37,9 @@ public class Task {
     
     private String status;
     
+    @TableField("switch_mode")
+    private Integer switchMode; // 1=自动切换，2=手动切换
+    
     @TableField("start_time")
     private Date startTime;
     
@@ -49,4 +52,7 @@ public class Task {
     
     @TableField(exist = false)
     private List<Project> projects;
+    
+    @TableField("update_time")
+    private Date updateTime;
 }

@@ -86,6 +86,10 @@ public class ScoreSystemModels {
 
         private String unit;
         private String leader;
+        private String industry;
+
+        // 新增：任务中间表is_reviewed
+        private Integer isReviewed;
     }
 
     /**
@@ -132,6 +136,7 @@ public class ScoreSystemModels {
         private Date endTime;
         
         private Integer projectCount;
+        private Integer switchMode; // 1=自动切换，2=手动切换
     }
 
     /**

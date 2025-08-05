@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
+    <title>专家评审系统 - 评审进度</title>
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/admin.css">
     <link rel="stylesheet" href="../css/user.css">
@@ -33,6 +33,53 @@
             margin: 10px 0;
             border-left: 4px solid #007bff;
         }
+        /* 高亮当前未完成评审项目 */
+        .highlight-row {
+            background: #fffbe6 !important;
+            border-left: 4px solid #faad14 !important;
+            font-weight: bold;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.7);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg);}
+            100% { transform: rotate(360deg);}
+        }
+        .loading-text {
+            font-size: 18px;
+            color: #333;
+        }
+        .error-message {
+            display: none;
+            background: #fff2f0;
+            color: #cf1322;
+            border: 1px solid #ffa39e;
+            border-radius: 4px;
+            padding: 12px 20px;
+            margin: 16px 0;
+            font-size: 16px;
+            text-align: center;
+            z-index: 10000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -59,18 +106,15 @@
             </header>
 
             <div class="content">
-                <div class="countdown-info">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>下次自动刷新倒计时：<span id="countdown">30</span> 秒</span>
-                        <div class="task-selector">
-                            <label for="taskSelect"></label>
+                <div class="countdown-info" style="display: flex; align-items: center; gap: 18px; margin-bottom: 0;">
+                    <span style="white-space:nowrap;">下次自动刷新倒计时：<span id="countdown">30</span> 秒</span>
+                    <div class="task-selector" style="display: flex; align-items: center; gap: 8px;">
+                        <label for="taskSelect" style="margin-bottom:0;">选择评审任务：</label>
                             <select id="taskSelect" class="form-control">
                                 <option value="">请选择评审任务</option>
                             </select>
-                        </div>
                     </div>
                 </div>
-                
                 <div class="user-content">
                     <table class="user-table">
                         <thead>
@@ -78,18 +122,276 @@
                                 <th>项目名称</th>
                                 <th>评分进度</th>
                                 <th>进度条</th>
+                                <th>已评分专家</th>
                                 <th>总分</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="userList">
                             <!-- 动态填充 -->
                         </tbody>
                     </table>
+                    <div style="margin-top: 18px; text-align: right;">
+                        <button id="exportBtn" class="btn">导出EXCEL</button>
+                        <button id="reorderBtn" class="btn" style="display:none; margin-left: 8px;">调整项目顺序</button>
+                    </div>
                 </div>
+            </div>
+            <!-- 新增：切换下一项目方式按钮区域 -->
+            <div id="switchModeInfo" style="display:none; margin-bottom: 16px;">
+                <button id="switchModeBtn" class="btn"></button>
+                <span id="switchModeText" style="margin-left: 12px; color: #666;"></span>
+                <button id="manualSwitchBtn" class="btn" style="display:none; margin-left: 12px;">下一项目</button>
             </div>
         </main>
     </div>
 
+    <div class="loading-overlay" style="display:none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在加载，请稍候...</div>
+    </div>
+
+    <!-- 项目顺序调整弹出窗口 -->
+    <div id="reorderModal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:10001; align-items:center; justify-content:center;">
+        <div class="reorder-modal-box">
+            <div class="reorder-modal-header">
+                <h3>项目顺序调整</h3>
+                <button id="closeReorderModal" class="reorder-modal-close">×</button>
+            </div>
+            <div class="reorder-modal-content">
+                <p class="reorder-tip">拖拽项目可调整评审顺序（仅限未开始评审的项目）</p>
+                <div id="projectReorderList" class="project-reorder-list"></div>
+            </div>
+            <div class="reorder-modal-footer">
+                <button id="saveReorderBtn" class="btn btn-primary">保存顺序</button>
+                <button id="cancelReorderBtn" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 评分明细弹窗 -->
+    <div id="scoreDetailModal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:10001; align-items:center; justify-content:center;">
+        <div class="score-detail-modal-box">
+            <button id="closeScoreDetail" class="score-detail-close">×</button>
+            <div id="scoreDetailContent" class="score-detail-content"></div>
+        </div>
+    </div>
+    <style>
+    .score-detail-modal-box {
+        background: #fff;
+        border-radius: 10px;
+        max-width: 700px;
+        width: 96vw;
+        margin: 60px auto;
+        padding: 28px 32px 20px 32px;
+        position: relative;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        min-height: 120px;
+        max-height: 80vh;
+        overflow: hidden;
+        border: 1.5px solid #e6e6e6;
+    }
+    .score-detail-close {
+        position: absolute;
+        right: 16px;
+        top: 10px;
+        background: none;
+        border: none;
+        font-size: 26px;
+        color: #888;
+        cursor: pointer;
+        transition: color 0.2s;
+        z-index: 2;
+    }
+    .score-detail-close:hover {
+        color: #fa541c;
+    }
+    .score-detail-content {
+        overflow-y: auto;
+        max-height: 60vh;
+        min-height: 80px;
+        margin-top: 8px;
+    }
+    .score-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        background: #fff;
+        font-size: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .score-detail-table th, .score-detail-table td {
+        border: 1px solid #e8e8e8;
+        padding: 8px 10px;
+        text-align: center;
+    }
+    .score-detail-table th {
+        background: #f5f7fa;
+        color: #333;
+        font-weight: 600;
+    }
+    .score-detail-table tr:nth-child(even) {
+        background: #fafafa;
+    }
+    .score-detail-table tr:hover {
+        background: #e6f7ff;
+    }
+    @media (max-width: 600px) {
+        .score-detail-modal-box {
+            padding: 12px 2vw 8px 2vw;
+        }
+        .score-detail-table th, .score-detail-table td {
+            padding: 6px 2px;
+            font-size: 13px;
+        }
+    }
+
+    /* 项目顺序调整弹出窗口样式 */
+    .reorder-modal-box {
+        background: #fff;
+        border-radius: 10px;
+        max-width: 800px;
+        width: 90vw;
+        margin: 60px auto;
+        padding: 0;
+        position: relative;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        display: flex;
+        flex-direction: column;
+        max-height: 80vh;
+        overflow: hidden;
+        border: 1.5px solid #e6e6e6;
+    }
+    .reorder-modal-header {
+        padding: 20px 24px 16px 24px;
+        border-bottom: 1px solid #e8e8e8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fafafa;
+    }
+    .reorder-modal-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 18px;
+    }
+    .reorder-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #888;
+        cursor: pointer;
+        transition: color 0.2s;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .reorder-modal-close:hover {
+        color: #fa541c;
+    }
+    .reorder-modal-content {
+        padding: 20px 24px;
+        flex: 1;
+        overflow-y: auto;
+        max-height: 60vh;
+    }
+    .reorder-modal-footer {
+        padding: 16px 24px 20px 24px;
+        border-top: 1px solid #e8e8e8;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        background: #fafafa;
+    }
+    .reorder-tip {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 16px;
+        padding: 8px 12px;
+        background: #f0f8ff;
+        border-radius: 4px;
+        border-left: 3px solid #1890ff;
+    }
+    .project-reorder-list {
+        min-height: 200px;
+        border: 1px solid #e8e8e8;
+        border-radius: 6px;
+        padding: 8px;
+        background: #fafafa;
+    }
+    .reorder-project-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        background: #fff;
+        border: 1px solid #e8e8e8;
+        border-radius: 6px;
+        cursor: move;
+        transition: all 0.2s;
+    }
+    .reorder-project-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-color: #1890ff;
+    }
+    .reorder-project-item .handle {
+        color: #999;
+        font-size: 16px;
+        margin-right: 12px;
+        cursor: move;
+    }
+    .reorder-project-item .project-name {
+        flex: 1;
+        font-weight: 500;
+        color: #333;
+    }
+    .reorder-project-item .project-order {
+        color: #666;
+        font-size: 14px;
+        background: #f0f0f0;
+        padding: 4px 8px;
+        border-radius: 4px;
+        min-width: 40px;
+        text-align: center;
+    }
+    .ui-sortable-placeholder {
+        visibility: visible !important;
+        background: #e6f7ff !important;
+        border: 2px dashed #1890ff !important;
+        height: 60px;
+        margin-bottom: 8px;
+    }
+    .no-projects {
+        text-align: center;
+        color: #999;
+        padding: 40px 20px;
+        font-style: italic;
+    }
+    @media (max-width: 600px) {
+        .reorder-modal-box {
+            width: 95vw;
+            margin: 20px auto;
+        }
+        .reorder-modal-header,
+        .reorder-modal-content,
+        .reorder-modal-footer {
+            padding: 16px;
+        }
+        .reorder-project-item {
+            padding: 10px 12px;
+        }
+    }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script src="../js/utils/error-handler.js"></script>
     <script src="../js/utils/auth.js"></script>
     <script src="../js/api/mock.js"></script>
@@ -98,116 +400,6 @@
     <script src="../js/api/http.js"></script>
     <script src="../js/api/api-service.js"></script>
     <script src="../js/api/api-adapter.js"></script>
-    <script>
-        let timer = null;
-        let countdown = 30;
-        let currentTaskId = null;
-
-        // 倒计时显示
-        function updateCountdownDisplay() {
-            document.getElementById('countdown').textContent = countdown;
-        }
-
-        // 启动定时刷新
-        function startAutoRefresh(taskId) {
-            // 清除旧定时器
-            if (timer) clearInterval(timer);
-            countdown = 30;
-            updateCountdownDisplay();
-            currentTaskId = taskId;
-
-            timer = setInterval(() => {
-                countdown--;
-                updateCountdownDisplay();
-                if (countdown <= 0) {
-                    loadProgress(currentTaskId, true); // 自动刷新
-                }
-            }, 1000);
-        }
-
-        // 1. 加载任务列表
-        function loadTasks() {
-            api.getSimpleTasks().then(response => {
-                if (response.success) {
-                    const select = document.getElementById('taskSelect');
-                    select.innerHTML = '<option value="">请选择评审任务</option>';
-                    const tasks = response.data;
-                    tasks.forEach(task => {
-                        const option = document.createElement('option');
-                        option.value = task.id;
-                        option.textContent = (task.taskId?task.taskId:'') + (task.category ? ' - ' + task.category : '');
-                        select.appendChild(option);
-                    });
-                    if (tasks.length > 0) {
-                        select.value = tasks[0].id;
-                        loadProgress(tasks[0].id, false); // 首次加载
-                        startAutoRefresh(tasks[0].id);
-                    }
-                }
-            }).catch(error => {
-                console.error('加载任务列表失败:', error);
-            });
-        }
-
-        // 2. 加载进度数据
-        function loadProgress(taskId, isAuto) {
-            api.getTaskProjectProgressAndScores(taskId).then(response => {
-                if (response.success) {
-                    const tbody = document.getElementById('userList');
-                    tbody.innerHTML = '';
-                    const data = response.data;
-                    data.forEach(item => {
-                        const tr = document.createElement('tr');
-                        // 项目名称
-                        const tdName = document.createElement('td');
-                        tdName.textContent = item.projectName;
-                        tr.appendChild(tdName);
-
-                        // 评分进度
-                        const tdProgress = document.createElement('td');
-                        tdProgress.innerHTML = `${item.completedExperts} / ${item.totalExperts} (${item.completionRate.toFixed(1)}%)`;
-                        tr.appendChild(tdProgress);
-
-                        // 进度条
-                        const tdBar = document.createElement('td');
-                        const barContainer = document.createElement('div');
-                        barContainer.className = 'progress-bar-container';
-                        const bar = document.createElement('div');
-                        bar.className = 'progress-bar';
-                        bar.style.width = item.completionRate + '%';
-                        barContainer.appendChild(bar);
-                        tdBar.appendChild(barContainer);
-                        tr.appendChild(tdBar);
-
-                        // 总分
-                        const tdScore = document.createElement('td');
-                        tdScore.className = 'score-info';
-                        tdScore.textContent = item.totalScore != null ? item.totalScore.toFixed(2) : '-';
-                        tr.appendChild(tdScore);
-
-                        tbody.appendChild(tr);
-                    });
-                    // 自动刷新时重置倒计时
-                    if (isAuto) {
-                        countdown = 30;
-                        updateCountdownDisplay();
-                    }
-                }
-            }).catch(error => {
-                console.error('加载进度数据失败:', error);
-            });
-        }
-
-        // 3. 任务切换事件
-        document.getElementById('taskSelect').addEventListener('change', function() {
-            if (this.value) {
-                loadProgress(this.value, false);
-                startAutoRefresh(this.value);
-            }
-        });
-
-        // 初始化
-        loadTasks();
-    </script>
+    <script src="../js/admin/scoring-progress.js"></script>
 </body>
 </html>

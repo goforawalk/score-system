@@ -12,7 +12,7 @@ const env = {
     
     // API基础URL
     apiBaseUrl: {
-        development: 'http://192.168.9.243:8080',
+        development: 'http://localhost:8227',
         production: 'https://api.score-system.com/api'
     },
     

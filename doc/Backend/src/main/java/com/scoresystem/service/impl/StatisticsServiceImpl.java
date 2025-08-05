@@ -2,9 +2,11 @@ package com.scoresystem.service.impl;
 
 import com.scoresystem.model.Project;
 import com.scoresystem.model.Score;
+import com.scoresystem.model.ScoreItem;
 import com.scoresystem.model.Task;
 import com.scoresystem.model.User;
 import com.scoresystem.repository.ProjectRepository;
+import com.scoresystem.repository.ScoreItemRepository;
 import com.scoresystem.repository.ScoreRepository;
 import com.scoresystem.repository.TaskRepository;
 import com.scoresystem.repository.UserRepository;
@@ -20,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.HashSet;
 
 /**
  * 统计服务实现类
@@ -41,6 +45,9 @@ public class StatisticsServiceImpl implements StatisticsService {
 
 	@Autowired
 	private ScoreService scoreService;
+
+	@Autowired
+	private ScoreItemRepository scoreItemRepository;
 
 	@Autowired
 	private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
@@ -1024,4 +1031,183 @@ public class StatisticsServiceImpl implements StatisticsService {
 		
 		return statistics;
 	}
+
+	@Override
+public byte[] generateTaskExcel(Long taskId) {
+    // 1. 查询任务、项目、评分项、专家、评分数据
+    Task task = taskRepository.selectById(taskId);
+    if (task == null) return null;
+    String groupCategory = task.getCategory();
+
+    List<Project> projects = projectRepository.findByTaskIdOrderByDisplayOrderAsc(taskId);
+    // 预加载所有项目评分项
+    for (Project p : projects) {
+        p.setScoreItems(scoreItemRepository.findByProjectId(p.getId()));
+    }
+
+    // 查询所有专家账号和姓名
+    List<String> expertUsernames = new ArrayList<>();
+    Map<String, String> usernameToName = new HashMap<>();
+    // 查询专家账号和姓名
+    List<Map<String, Object>> expertRows = jdbcTemplate.queryForList(
+        "SELECT DISTINCT username, name FROM task_experts_details WHERE task_id = ?",
+        taskId
+    );
+    for (Map<String, Object> row : expertRows) {
+        String username = (String) row.get("username");
+        String name = (String) row.get("name");
+        expertUsernames.add(username);
+        usernameToName.put(username, name != null ? name : username);
+    }
+
+    // 查询所有评分
+    List<Score> allScores = scoreRepository.findByTaskId(taskId);
+    // 只保留非草稿
+    allScores = allScores.stream().filter(s -> !Boolean.TRUE.equals(s.getIsDraft())).collect(Collectors.toList());
+    
+    // 为每个评分记录加载详细的评分项分数
+    for (Score score : allScores) {
+        List<Map<String, Object>> scoreDetails = jdbcTemplate.queryForList(
+            "SELECT score_item_id, score_value FROM score_details WHERE score_id = ?",
+            score.getId()
+        );
+        Map<Long, Integer> scoresMap = new HashMap<>();
+        for (Map<String, Object> detail : scoreDetails) {
+            Long scoreItemId = ((Number) detail.get("score_item_id")).longValue();
+            Integer scoreValue = ((Number) detail.get("score_value")).intValue();
+            scoresMap.put(scoreItemId, scoreValue);
+        }
+        score.setScores(scoresMap);
+    }
+
+    // 查询专家-项目-评分项分配关系
+    String detailSql = "SELECT project_id, username, score_item_id FROM task_experts_details WHERE task_id = ?";
+    List<Map<String, Object>> expertDetails = jdbcTemplate.queryForList(detailSql, taskId);
+    // Map<projectId, Map<expert, Set<scoreItemId>>>
+    Map<Long, Map<String, Set<Long>>> projectExpertScoreItems = new HashMap<>();
+    for (Map<String, Object> row : expertDetails) {
+        Long projectId = ((Number)row.get("project_id")).longValue();
+        String expert = (String)row.get("username");
+        Long scoreItemId = ((Number)row.get("score_item_id")).longValue();
+        projectExpertScoreItems
+            .computeIfAbsent(projectId, k -> new HashMap<>())
+            .computeIfAbsent(expert, k -> new HashSet<>())
+            .add(scoreItemId);
+    }
+
+    // 计算总分并排名
+    Map<Long, Double> projectIdToTotalScore = new HashMap<>();
+    for (Project p : projects) {
+        double total = allScores.stream()
+            .filter(s -> s.getProjectId().equals(p.getId()) && s.getTotalScore() != null)
+            .mapToDouble(Score::getTotalScore).sum();
+        projectIdToTotalScore.put(p.getId(), total);
+    }
+    // 排序
+    List<Project> sortedProjects = new ArrayList<>(projects);
+    sortedProjects.sort((a, b) -> Double.compare(
+        projectIdToTotalScore.getOrDefault(b.getId(), 0.0),
+        projectIdToTotalScore.getOrDefault(a.getId(), 0.0)
+    ));
+
+    // 计算排名
+    Map<Long, Integer> projectIdToRank = new HashMap<>();
+    int rank = 1;
+    double lastScore = Double.NaN;
+    int lastRank = 1;
+    for (int i = 0; i < sortedProjects.size(); i++) {
+        Project p = sortedProjects.get(i);
+        double score = projectIdToTotalScore.getOrDefault(p.getId(), 0.0);
+        if (!Double.isNaN(lastScore) && Double.compare(score, lastScore) != 0) {
+            rank = i + 1;
+        }
+        projectIdToRank.put(p.getId(), rank);
+        lastScore = score;
+        lastRank = rank;
+    }
+
+    // 2. 组装Excel
+    try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+        org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("评分明细");
+        // 居中样式
+        org.apache.poi.ss.usermodel.CellStyle centerStyle = workbook.createCellStyle();
+        centerStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
+        centerStyle.setVerticalAlignment(org.apache.poi.ss.usermodel.VerticalAlignment.CENTER);
+
+        // 表头
+        String[] headers = {"排名", "项目名称", "牵头单位", "组别", "所属产业", "评审专家", "打分模块", "专家打分", "最终得分"};
+        org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(centerStyle);
+        }
+
+        int rowIdx = 1;
+        for (Project project : sortedProjects) {
+            List<ScoreItem> scoreItems = project.getScoreItems();
+            if (scoreItems == null) continue;
+            Map<String, Set<Long>> expertScoreItems = projectExpertScoreItems.getOrDefault(project.getId(), Collections.emptyMap());
+            List<Object[]> detailRows = new ArrayList<>();
+            for (String expert : expertUsernames) {
+                String expertName = usernameToName.getOrDefault(expert, expert);
+                Set<Long> responsibleItems = expertScoreItems.getOrDefault(expert, Collections.emptySet());
+                if (responsibleItems.isEmpty()) continue;
+                // 找到该专家对该项目的评分
+                Score score = allScores.stream()
+                    .filter(s -> s.getProjectId().equals(project.getId()) && expert.equals(s.getUserId()))
+                    .findFirst().orElse(null);
+                Map<Long, Integer> scoreMap = score != null ? score.getScores() : null;
+                for (ScoreItem item : scoreItems) {
+                    if (!responsibleItems.contains(item.getId())) continue; // 只导出负责的评分项
+                    Integer value = (scoreMap != null && scoreMap.containsKey(item.getId())) ? scoreMap.get(item.getId()) : null;
+                    detailRows.add(new Object[]{
+                        projectIdToRank.get(project.getId()), // 排名
+                        project.getName(), // 项目名称
+                        project.getUnit(), // 牵头单位
+                        groupCategory, // 组别
+                        project.getIndustry(), // 所属产业
+                        expertName, // 评审专家
+                        item.getName(), // 打分模块
+                        value, // 专家打分
+                        projectIdToTotalScore.get(project.getId()) // 最终得分
+                    });
+                }
+            }
+            // 跨行合并：排名、项目名称、牵头单位、组别、所属产业、最终得分
+            int mergeRows = detailRows.size();
+            int startRow = rowIdx;
+            for (Object[] rowData : detailRows) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowIdx++);
+                for (int i = 0; i < rowData.length; i++) {
+                    org.apache.poi.ss.usermodel.Cell cell = row.createCell(i);
+                    if (rowData[i] != null)
+                        cell.setCellValue(rowData[i].toString());
+                    else
+                        cell.setCellValue("");
+                    cell.setCellStyle(centerStyle); // 应用居中样式
+                }
+            }
+            // 合并单元格
+            if (mergeRows > 1) {
+                for (int col : new int[]{0, 1, 2, 3, 4, 8}) {
+                    sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(
+                        startRow, startRow + mergeRows - 1, col, col
+                    ));
+                }
+            }
+        }
+        // 自动列宽
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+        workbook.write(bos);
+        return bos.toByteArray();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return null;
+    }
+}
+
 }

@@ -253,6 +253,7 @@ const mockApi = {
             projectIdsInOrder: [2, 1],
             scoreGroupType: "preliminary", // 使用初赛评分项
             taskType: 1, // 类型1：全部专家完成后进入下一项目（同步评审模式）
+            switchMode: 1, // 新增字段，默认自动切换
             status: "active", // 设为活动状态
             expertIds: ["expert1", "expert2", "expert3"],
             createdAt: "2024-01-15T08:00:00.000Z"
@@ -1215,6 +1216,10 @@ updateReviewTask: function(taskId, taskData) {
             setTimeout(() => {
                 const task = this.tasks.find(t => t.id === taskId);
                 if (task) {
+                    // 保证返回的同步评审任务有switchMode字段
+                    if (task.taskType === 1 && typeof task.switchMode === 'undefined') {
+                        task.switchMode = 1;
+                    }
                     resolve({
                         success: true,
                         data: task

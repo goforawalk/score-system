@@ -122,4 +122,21 @@ public interface ProjectService {
      * @return 项目DTO列表
      */
     List<ProjectDTO> getSimpleProjectsByTask(Long taskId);
+
+    /**
+     * 判断项目在指定任务下是否评分完毕（统一业务口径）
+     * @param projectId 项目ID
+     * @param taskId 任务ID
+     * @return 是否评分完毕
+     */
+    boolean isProjectReviewed(Long projectId, Long taskId);
+
+    /**
+     * 获取项目评分明细
+     * 
+     * @param projectId 项目ID
+     * @param taskId 任务ID
+     * @return 评分明细列表
+     */
+    List<Map<String, Object>> getProjectScoreDetails(Long projectId, Long taskId);
 } 

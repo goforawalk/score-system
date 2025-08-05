@@ -191,4 +191,11 @@ public interface StatisticsService {
      * @return 包含评分项详细统计、项目总分和完成率的统计数据
      */
     List<Map<String, Object>> getFrontendStatistics(Long taskId);
+
+    /**
+     * 生成任务评分Excel
+     * @param taskId 任务ID
+     * @return 评分Excel文件字节数组
+     */
+    byte[] generateTaskExcel(Long taskId);
 } 

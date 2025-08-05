@@ -41,7 +41,13 @@ public class Project {
     
     private String leader;
     
+    @TableField("industry")
+    private String industry;
+    
     // 非数据库字段，关联的评分项列表
     @TableField(exist = false)
     private transient java.util.List<ScoreItem> scoreItems;
+
+    @TableField(exist = false)
+    private transient Integer isReviewed;
 }

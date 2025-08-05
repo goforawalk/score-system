@@ -117,6 +117,10 @@
                 <label for="projectLeader">团队代表</label>
                 <input type="text" id="projectLeader" name="leader" required>
             </div>
+            <div class="form-group">
+                <label for="projectIndustry">所属行业</label>
+                <input type="text" id="projectIndustry" name="industry" placeholder="请输入所属行业">
+            </div>
             <!-- 修改项目对话框中的评分项配置部分 -->
 <div class="form-group">
     <label>评分项配置</label>
@@ -180,6 +184,14 @@
                     </label>
                 </div>
             </div>
+            <!-- 新增：切换下一项目方式（仅同步任务显示） -->
+            <div class="form-group" id="switchModeGroup" style="display:none;">
+                <label>切换下一项目方式</label>
+                <div>
+                    <label><input type="radio" name="switchMode" value="1" checked> 自动切换</label>
+                    <label><input type="radio" name="switchMode" value="2"> 手动切换</label>
+                </div>
+            </div>
             <!-- 修改评审任务对话框中的项目选择部分 -->
 <div class="form-group">
     <label>选择项目及评分组合</label>
@@ -190,6 +202,16 @@
         </div>
         <div class="task-projects-group">
             <div class="task-projects-group-title">未选择项目</div>
+            <div class="unselected-projects-header">
+                <div class="search-container">
+                    <input type="text" id="unselectedProjectsSearch" placeholder="搜索项目..." class="search-input">
+                    <button type="button" class="btn btn-clear-search" title="清空搜索">×</button>
+                </div>
+                <div class="selection-controls">
+                    <button type="button" class="btn btn-select-all">全选</button>
+                    <button type="button" class="btn btn-move-selected">移动到已选择</button>
+                </div>
+            </div>
             <div id="unselectedProjects" class="task-projects-sortable"></div>
         </div>
     </div>

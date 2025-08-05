@@ -40,10 +40,10 @@ public interface ProjectRepository extends BaseMapper<Project> {
      * @param taskId 任务ID
      * @return 项目实体列表
      */
-    @Select("SELECT p.* FROM projects p " +
+    @Select("SELECT p.*, tp.is_reviewed FROM projects p " +
             "JOIN task_projects tp ON p.id = tp.project_id " +
             "WHERE tp.task_id = #{taskId} " +
-            "ORDER BY p.display_order ASC")
+            "ORDER BY tp.project_order ASC")
     List<Project> findByTaskIdOrderByDisplayOrderAsc(@Param("taskId") Long taskId);
     
     /**

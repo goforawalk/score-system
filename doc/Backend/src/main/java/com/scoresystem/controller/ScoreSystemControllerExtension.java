@@ -14,12 +14,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * 评分系统API控制器扩展
@@ -126,6 +130,17 @@ public class ScoreSystemControllerExtension {
         List<ScoreItemDTO> scoreItems = projectService.getScoreItemsByProjectId(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "获取项目评分项成功", scoreItems));
     }
+
+    /**
+     * 获取项目评分明细
+     */
+    @GetMapping("/projects/{projectId}/score-details")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getProjectScoreDetails(
+            @PathVariable Long projectId,
+            @RequestParam Long taskId) {
+        List<Map<String, Object>> details = projectService.getProjectScoreDetails(projectId, taskId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "获取评分明细成功", details));
+    }
     
     // 任务管理扩展接口
     
@@ -182,12 +197,70 @@ public class ScoreSystemControllerExtension {
     }
     
     /**
+     * 重置评审任务
+     */
+    @PutMapping("/tasks/{id}/reset")
+    public ResponseEntity<ApiResponse<TaskDTO>> resetTask(@PathVariable Long id) {
+        TaskDTO task = taskService.resetTask(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "重置评审任务成功", task));
+    }
+
+    /**
+     * 调整任务项目顺序（仅手动切换模式且项目未评审时可用）
+     */
+    @PutMapping("/tasks/{id}/reorder-projects")
+    public ResponseEntity<ApiResponse<TaskDTO>> reorderTaskProjects(
+            @PathVariable Long id,
+            @RequestBody List<Long> projectIds) {
+        TaskDTO task = taskService.reorderTaskProjects(id, projectIds);
+        return ResponseEntity.ok(new ApiResponse<>(true, "调整项目顺序成功", task));
+    }
+
+    /**
+     * 获取任务项目顺序调整权限状态
+     */
+    @GetMapping("/tasks/{id}/reorder-permission")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getReorderPermission(@PathVariable Long id) {
+        Map<String, Object> permission = taskService.getReorderPermission(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "获取权限状态成功", permission));
+    }
+    
+    /**
+     * 更新任务切换模式
+     */
+    @PutMapping("/tasks/{id}/switch-mode")
+    public ResponseEntity<ApiResponse<TaskDTO>> updateTaskSwitchMode(
+            @PathVariable Long id, 
+            @RequestBody Map<String, Integer> request) {
+        Integer switchMode = request.get("switchMode");
+        
+        TaskDTO task = taskService.updateTaskSwitchMode(id, switchMode);
+        
+        return ResponseEntity.ok(new ApiResponse<>(true, "更新任务切换模式成功", task));
+    }
+    
+    /**
      * 检查任务完成状态
      */
     @GetMapping("/tasks/{id}/completion-status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkTaskCompletionStatus(@PathVariable Long id) {
         Map<String, Object> status = taskService.checkTaskCompletionStatus(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "获取任务完成状态成功", status));
+    }
+
+    /**
+     * 导出任务Excel
+     */
+    @GetMapping("/tasks/{taskId}/export-excel")
+    public void exportTaskExcel(@PathVariable Long taskId, HttpServletResponse response) throws IOException {
+        // 1. 生成Excel
+        byte[] excelBytes = statisticsService.generateTaskExcel(taskId);
+
+        // 2. 设置响应头
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=task_" + taskId + "_scores.xlsx");
+        response.getOutputStream().write(excelBytes);
+        response.getOutputStream().flush();
     }
     
     // 评分扩展接口
@@ -328,6 +401,19 @@ public class ScoreSystemControllerExtension {
     public ResponseEntity<ApiResponse<String>> generateTestData() {
         String result = testDataService.generateTestData();
         return ResponseEntity.ok(new ApiResponse<>(true, "测试数据生成成功", result));
+    }
+    
+    @PostMapping("/tasks/{taskId}/manual-switch")
+    public ResponseEntity<ApiResponse<Long>> manualSwitch(
+            @PathVariable Long taskId,
+            @RequestParam Long currentProjectId) {
+        // 1. 标记当前项目已评审
+        taskService.markProjectReviewed(taskId, currentProjectId);
+        // 2. 获取当前顺序号
+        Integer order = taskService.getProjectOrder(taskId, currentProjectId);
+        // 3. 获取下一个项目
+        Long nextProjectId = taskService.getNextProjectId(taskId, order);
+        return ResponseEntity.ok(new ApiResponse<>(true, "切换成功", nextProjectId));
     }
     
 } 

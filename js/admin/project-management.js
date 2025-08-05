@@ -157,6 +157,10 @@ function renderProjects(projects) {
                         <span>${project.leader || '未填写'}</span>
                     </div>
                     <div class="info-item">
+                        <label>所属行业：</label>
+                        <span>${project.industry || '未填写'}</span>
+                    </div>
+                    <div class="info-item">
                         <label>创建时间：</label>
                         <span>${new Date(project.createTime).toLocaleString()}</span>
                     </div>
@@ -220,6 +224,7 @@ async function openDialog(title, project = null, existingRoles = null) {
             $('#projectName').val(project.name);
             $('#projectUnit').val(project.unit);
             $('#projectLeader').val(project.leader);
+            $('#projectIndustry').val(project.industry); // 填充行业字段
 
             // 保存当前项目数据，用于提交时保持状态
             window.currentProjectData = project;
@@ -262,6 +267,7 @@ function handleProjectSubmit(e) {
         name: $('#projectName').val(),
         unit: $('#projectUnit').val(),
         leader: $('#projectLeader').val(),
+        industry: $('#projectIndustry').val(),
         scoreGroups: {
             preliminary: [],
             semifinal: [],
@@ -444,7 +450,8 @@ const projectTemplates = {
     preliminary: {
         name: '初赛评审模板',
         description: '包含产业、投融资、知识产权三个评分项',
-        scoreItems: [
+        scoreGroups: {
+        preliminary: [
             { 
                 name: '产业',
                 roles: ['expert1']
@@ -458,54 +465,32 @@ const projectTemplates = {
                 roles: ['expert3']
             }
         ]
+    }
     },
     semifinal: {
         name: '复赛评审模板',
-        description: '包含产业技术、投融资、知识产权、企业高管四个评分项',
-        scoreItems: [
-            { 
-                name: '产业技术',
-                roles: ['expert1']
-            },
-            {
-                name: '投融资',
-                roles: ['expert2']
-            },
-            {
-                name: '知识产权',
-                roles: ['expert3']
-            },
-            {
-                name: '企业高管',
-                roles: ['expert4']
-            }
+    description: '包含产业技术、投融资、知识产权、企业高管四个评分项',
+    scoreGroups: {
+        semifinal: [
+            { name: '产业技术', roles: ['expert1'] },
+            { name: '投融资', roles: ['expert2'] },
+            { name: '知识产权', roles: ['expert3'] },
+            { name: '企业高管', roles: ['expert4'] }
         ]
+    }
     },
     final: {
         name: '决赛评审模板',
-        description: '包含投资、知识产权、产业技术、技术经理人、企业高管五个评分项',
-        scoreItems: [
-            { 
-                name: '投资',
-                roles: ['expert1']
-            },
-            {
-                name: '知识产权',
-                roles: ['expert2']
-            },
-            {
-                name: '产业技术',
-                roles: ['expert3']
-            },
-            {
-                name: '技术经理人',
-                roles: ['expert5']
-            },
-            {
-                name: '企业高管',
-                roles: ['expert4']
-            }
+    description: '包含投资、知识产权、产业技术、技术经理人、企业高管五个评分项',
+    scoreGroups: {
+        final: [
+            { name: '投资', roles: ['expert1'] },
+            { name: '知识产权', roles: ['expert2'] },
+            { name: '产业技术', roles: ['expert3'] },
+            { name: '技术经理人', roles: ['expert5'] },
+            { name: '企业高管', roles: ['expert4'] }
         ]
+    }
     },
     fullProcess: {
         name: '高转赛模板',
@@ -602,6 +587,7 @@ async function useTemplate() {
         $('#projectName').val(template.name || '');
         $('#projectUnit').val(template.unit || '');
         $('#projectLeader').val(template.leader || '');
+        $('#projectIndustry').val(template.industry || ''); // 填充行业字段
 
         // 清空所有评分项组
         ['preliminary', 'semifinal', 'final'].forEach(group => {
@@ -986,6 +972,28 @@ async function openTaskDialog(task = null, readOnly = false) {
                 $(`input[name="taskType"][value="${task.taskType}"]`).prop('checked', true);
                 $(`input[name="scoreGroupType"][value="${task.scoreGroupType}"]`).prop('checked', true);
                 $('#taskForm').data('taskId', task.id);
+                // 在openTaskDialog函数内，任务类型切换时控制switchModeGroup显示/隐藏
+                // 任务类型切换时显示/隐藏切换模式
+                $form.find('input[name="taskType"]').off('change').on('change', function() {
+                    if (parseInt($(this).val()) === 1) {
+                        $('#switchModeGroup').show();
+                    } else {
+                        $('#switchModeGroup').hide();
+                    }
+                });
+                // 初始化时根据当前taskType显示/隐藏
+                if (parseInt($form.find('input[name="taskType"]:checked').val()) === 1) {
+                    $('#switchModeGroup').show();
+                } else {
+                    $('#switchModeGroup').hide();
+                }
+                // 编辑任务时回显switchMode
+                if (task && task.taskType === 1) {
+                    const mode = task.switchMode || 1;
+                    $form.find('input[name="switchMode"][value="' + mode + '"]').prop('checked', true);
+                } else {
+                    $form.find('input[name="switchMode"][value="1"]').prop('checked', true);
+                }
             } else {
                 // 新建任务时，彻底清空所有输入框和数据
                 $('#taskForm')[0].reset();
@@ -1016,6 +1024,13 @@ function renderTaskProjects(projects, selectedIds = []) {
         </div>
         <div class="task-projects-group">
             <div class="task-projects-group-title">未选择项目</div>
+            <div class="unselected-projects-header">
+                <input type="text" id="unselectedProjectsSearch" placeholder="搜索项目..." class="search-input">
+                <div class="selection-controls">
+                    <button type="button" class="btn btn-select-all">全选</button>
+                    <button type="button" class="btn btn-move-selected">移动到已选择</button>
+                </div>
+            </div>
             <div id="unselectedProjects" class="task-projects-sortable"></div>
         </div>
     `);
@@ -1050,7 +1065,22 @@ function renderTaskProjects(projects, selectedIds = []) {
                 const isSelected = $item.closest('#selectedProjects').length > 0;
                 $item.toggleClass('selected', isSelected)
                      .toggleClass('unselected', !isSelected);
-                updateProjectOrder();
+                
+                // 处理复选框的添加和移除
+                if (isSelected) {
+                    // 移动到已选择区域，移除复选框
+                    $item.find('.project-checkbox').remove();
+                    // 更新序号
+                    updateProjectOrder();
+                } else {
+                    // 移动到未选择区域，添加复选框
+                    if ($item.find('.project-checkbox').length === 0) {
+                        const projectId = $item.data('id');
+                        $item.prepend(`<input type="checkbox" class="project-checkbox" data-id="${projectId}">`);
+                    }
+                    // 清空序号
+                    $item.find('.order').text('--');
+                }
             }
         }
     }).disableSelection();
@@ -1072,6 +1102,12 @@ function renderTaskProjects(projects, selectedIds = []) {
              .addClass('unselected');
         updateProjectOrder();
     });
+
+    // 初始化搜索功能
+    initializeProjectSearch();
+    
+    // 初始化多选功能
+    initializeProjectMultiSelect();
 }
 
 // 添加专家渲染函数
@@ -1133,8 +1169,10 @@ function renderTaskExperts(experts, selectedUsernames = []) {
 
 // 添加创建项目元素的辅助函数
 function createProjectItemElement(project, isSelected, index = null) {
+    const checkboxHtml = isSelected ? '' : '<input type="checkbox" class="project-checkbox" data-id="' + project.id + '">';
     return $(`
         <div class="task-project-item ${isSelected ? 'selected' : 'unselected'}" data-id="${project.id}">
+            ${checkboxHtml}
             <span class="handle">☰</span>
             <span class="project-name">${project.name}</span>
             <span class="order">${isSelected ? `#${index + 1}` : '--'}</span>
@@ -1142,14 +1180,16 @@ function createProjectItemElement(project, isSelected, index = null) {
     `);
 }
 
-// 添加创建专家元素的辅助函数
+// 添加创建项目元素的辅助函数
 function createExpertItemElement(expert, isSelected) {
-    return $(`
-        <div class="expert-item ${isSelected ? 'selected' : 'unselected'}" data-id="${expert.username}">
+    const displayName = expert.name || expert.username;
+    const roleText = getRoleText(expert.role);
+    return $(
+        `<div class="expert-item ${isSelected ? 'selected' : 'unselected'}" data-id="${expert.username}">
             <span class="handle">☰</span>
-            <span class="expert-name">${expert.name || expert.username}</span>
-        </div>
-    `);
+            <span class="expert-name">${displayName}（${roleText}）</span>
+        </div>`
+    );
 }
 
 // 更新 updateProjectOrder 函数，确保正确更新序号
@@ -1223,10 +1263,14 @@ function handleTaskSubmit(e) {
         category: taskCategory,
         taskType: taskType,
         scoreGroupType: scoreGroupType,
-        status: 'pending',
+        status: 'pending', // 默认新建任务为待启用
         projectIds: projectIdsInOrder, // 传递项目ID列表
         experts: expertUsernames
     };
+    // 新增：同步评审时带上switchMode
+    if (taskType === 1) {
+        taskData.switchMode = parseInt($('input[name="switchMode"]:checked').val() || '1');
+    }
 
     // 如果是新建任务，设置开始时间为当前时间（格式：yyyy-MM-dd HH:mm:ss）
     if (!taskId) {
@@ -1289,7 +1333,8 @@ function renderTasks(tasks) {
             ${task.status === 'pending' ? '<button class="btn btn-edit">编辑</button>' : ''}
             ${task.status === 'active' ? '<button class="btn btn-details">详细</button>' : ''}
             ${task.status === 'pending' ? '<button class="btn btn-enable">启用</button>' : ''}
-            <button class="btn btn-delete">删除</button>
+            ${task.status === 'pending' ? '<button class="btn btn-delete">删除</button>' : ''}
+            ${task.status === 'active' ? '<button class="btn btn-reset">重置</button>' : ''}
         `;
 
         // 处理创建时间显示
@@ -1343,6 +1388,7 @@ function renderTasks(tasks) {
         $card.find('.btn-details').on('click', () => showTaskDetails(task));
         $card.find('.btn-enable').on('click', () => enableTask(task.id));
         $card.find('.btn-delete').on('click', () => deleteTask(task.id));
+        $card.find('.btn-reset').on('click', () => resetTask(task.id)); // 绑定重置按钮事件
 
         $taskList.append($card);
     });
@@ -1497,4 +1543,188 @@ function enableTask(taskId) {
         .catch(error => {
             alert(error.message || '启用任务失败');
         });
+}
+
+// 删除评审任务函数
+function deleteTask(taskId) {
+    if (!taskId) {
+        alert('任务ID无效');
+        return;
+    }
+    if (!confirm('确定要删除此评审任务吗？此操作不可恢复！')) {
+        return;
+    }
+    api.deleteReviewTask(taskId)
+        .then(response => {
+            if (response.success) {
+                alert('任务已删除');
+                loadTasks();
+            } else {
+                alert(response.message || '删除任务失败');
+            }
+        })
+        .catch(error => {
+            alert(error.message || '删除任务失败');
+        });
+}
+
+// 重置评审任务函数
+function resetTask(taskId) {
+    if (!taskId) {
+        alert('任务ID无效');
+        return;
+    }
+    if (!confirm('确定要重置此评审任务吗？此操作不可恢复！')) {
+        return;
+    }
+    api.resetReviewTask(taskId)
+        .then(response => {
+            if (response.success) {
+                alert('任务已重置');
+                loadTasks();
+            } else {
+                alert(response.message || '重置任务失败');
+            }
+        })
+        .catch(error => {
+            alert(error.message || '重置任务失败');
+        });
+}
+
+// 复制自 user-management.js
+function getRoleText(role) {
+    const roleMap = {
+        'admin': '管理员',
+        'expert1': '评审专家1',
+        'expert2': '评审专家2',
+        'expert3': '评审专家3',
+        'expert4': '评审专家4',
+        'expert5': '评审专家5',
+        'expert6': '评审专家6',
+        'expert7': '评审专家7'
+    };
+    return roleMap[role] || role;
+}
+
+// 初始化项目搜索功能
+function initializeProjectSearch() {
+    const $searchInput = $('#unselectedProjectsSearch');
+    const $clearBtn = $('.btn-clear-search');
+    
+    // 搜索输入事件
+    $searchInput.off('input').on('input', function() {
+        const searchText = $(this).val().toLowerCase().trim();
+        const $unselectedProjects = $('#unselectedProjects .task-project-item');
+        
+        $unselectedProjects.each(function() {
+            const $item = $(this);
+            const projectName = $item.find('.project-name').text().toLowerCase();
+            
+            if (searchText === '' || projectName.includes(searchText)) {
+                $item.show();
+            } else {
+                $item.hide();
+            }
+        });
+        
+        // 更新清空按钮显示状态
+        $clearBtn.toggle(searchText.length > 0);
+        
+        // 更新全选按钮状态
+        updateSelectAllButtonState();
+    });
+    
+    // 清空搜索按钮事件
+    $clearBtn.off('click').on('click', function() {
+        $searchInput.val('').trigger('input');
+    });
+    
+    // 初始化时隐藏清空按钮
+    $clearBtn.hide();
+}
+
+// 更新全选按钮状态
+function updateSelectAllButtonState() {
+    const $visibleItems = $('#unselectedProjects .task-project-item:visible');
+    const $checkedItems = $visibleItems.find('.project-checkbox:checked');
+    const $selectAllBtn = $('.btn-select-all');
+    const $moveBtn = $('.btn-move-selected');
+    
+    // 更新全选按钮状态
+    if ($visibleItems.length === 0) {
+        $selectAllBtn.text('全选').prop('disabled', true);
+    } else if ($checkedItems.length === $visibleItems.length && $visibleItems.length > 0) {
+        $selectAllBtn.text('取消全选').prop('disabled', false);
+    } else {
+        $selectAllBtn.text('全选').prop('disabled', false);
+    }
+    
+    // 更新移动按钮状态 - 只有在有项目被勾选时才可点击
+    $moveBtn.prop('disabled', $checkedItems.length === 0);
+}
+
+// 初始化项目多选功能
+function initializeProjectMultiSelect() {
+    // 全选/取消全选按钮事件
+    $('.btn-select-all').off('click').on('click', function() {
+        const $btn = $(this);
+        const $visibleItems = $('#unselectedProjects .task-project-item:visible');
+        const $checkboxes = $visibleItems.find('.project-checkbox');
+        
+        if ($btn.text() === '全选') {
+            // 全选可见项目
+            $checkboxes.prop('checked', true);
+            $btn.text('取消全选');
+        } else {
+            // 取消全选
+            $checkboxes.prop('checked', false);
+            $btn.text('全选');
+        }
+        
+        // 更新移动按钮状态
+        updateMoveButtonState();
+    });
+    
+    // 移动到已选择按钮事件
+    $('.btn-move-selected').off('click').on('click', function() {
+        const $checkedItems = $('#unselectedProjects .task-project-item:visible .project-checkbox:checked');
+        
+        if ($checkedItems.length === 0) {
+            alert('请先选择要移动的项目');
+            return;
+        }
+        
+        // 移动选中的项目到已选择区域
+        $checkedItems.each(function() {
+            const $checkbox = $(this);
+            const $item = $checkbox.closest('.task-project-item');
+            
+            // 移动到已选择区域
+            $item.appendTo('#selectedProjects')
+                 .removeClass('unselected')
+                 .addClass('selected')
+                 .find('.project-checkbox')
+                 .remove(); // 移除复选框
+            
+            // 更新序号
+            updateProjectOrder();
+        });
+        
+        // 更新按钮状态
+        updateSelectAllButtonState();
+        updateMoveButtonState();
+    });
+    
+    // 单个复选框变化事件
+    $(document).off('change', '.project-checkbox').on('change', '.project-checkbox', function() {
+        updateSelectAllButtonState();
+        updateMoveButtonState();
+    });
+}
+
+// 更新移动按钮状态
+function updateMoveButtonState() {
+    const $checkedItems = $('#unselectedProjects .task-project-item:visible .project-checkbox:checked');
+    const $moveBtn = $('.btn-move-selected');
+    $moveBtn.prop('disabled', $checkedItems.length === 0);
 }
