@@ -794,14 +794,13 @@ function applyFiltersAndSort() {
     const sortBy = $('#sortBy').val();
     const sortOrder = $('#sortOrder').val();
 
-    // 获取所有项目卡片
-    const $cards = $('.project-card').toArray();
+    // 使用完整项目数据源
+    const projects = window.allProjects || [];
 
     // 筛选
-    const filteredCards = $cards.filter(card => {
-        const $card = $(card);
-        const name = $card.find('h3').text().toLowerCase();
-        const status = $card.data('status');
+    let filteredProjects = projects.filter(project => {
+        const name = (project.name || '').toLowerCase();
+        const status = project.status;
 
         const matchesSearch = !searchText || name.includes(searchText);
         const matchesStatus = !statusFilter || status === statusFilter;
@@ -810,29 +809,24 @@ function applyFiltersAndSort() {
     });
 
     // 排序
-    filteredCards.sort((a, b) => {
-        const $a = $(a);
-        const $b = $(b);
+    filteredProjects.sort((a, b) => {
         let comparison = 0;
-
         switch (sortBy) {
             case 'name':
-                comparison = $a.find('h3').text().localeCompare($b.find('h3').text());
+                comparison = (a.name || '').localeCompare(b.name || '');
                 break;
             case 'createTime':
-                comparison = new Date($a.data('createTime')) - new Date($b.data('createTime'));
+                comparison = new Date(a.createTime) - new Date(b.createTime);
                 break;
             case 'status':
-                comparison = $a.data('status').localeCompare($b.data('status'));
+                comparison = (a.status || '').localeCompare(b.status || '');
                 break;
         }
-
         return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-    // 更新显示
-    const $projectList = $('#projectList');
-    $projectList.empty().append(filteredCards);
+    // 重新渲染项目列表
+    renderProjects(filteredProjects);
 }
 
 // 修改初始化任务管理函数，确保事件只绑定一次

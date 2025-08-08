@@ -6,6 +6,9 @@ $(document).ready(function() {
         return;
     }
 
+    $('#exportBtn').hide(); // 默认隐藏
+    $('#refreshBtn').hide(); // 默认隐藏刷新按钮
+
     // 初始化用户信息
     initializeUserInfo();
     
@@ -72,11 +75,12 @@ function updateCountdownDisplay() {
 
 // 启动定时刷新
 function startAutoRefresh(taskId) {
-    // 清除旧定时器
     if (timer) clearInterval(timer);
     countdown = 30;
     updateCountdownDisplay();
     currentTaskId = taskId;
+
+    $('#refreshBtn').show(); // 自动刷新时显示刷新按钮
 
     timer = setInterval(() => {
         countdown--;
@@ -85,6 +89,12 @@ function startAutoRefresh(taskId) {
             loadProgress(currentTaskId, true); // 自动刷新
         }
     }, 1000);
+}
+
+// 停止自动刷新时隐藏刷新按钮
+function stopAutoRefresh() {
+    if (timer) clearInterval(timer);
+    $('#refreshBtn').hide();
 }
 
 // 1. 加载任务列表（只显示启动中和已完成的任务）
@@ -136,7 +146,7 @@ function loadProgress(taskId, isAuto) {
 
             // 如果任务已完成，停止自动刷新，隐藏切换模式区域
             if (isCompleted) {
-                if (timer) clearInterval(timer);
+                stopAutoRefresh();
                 $('#switchModeInfo').hide();
             }
 
@@ -512,6 +522,16 @@ $('#exportBtn').on('click', function() {
         .catch(() => {
             showError('导出失败');
         });
+});
+
+// 刷新按钮点击事件
+$('#refreshBtn').on('click', function() {
+    const taskId = $('#taskSelect').val();
+    if (taskId) {
+        loadProgress(taskId, false);
+        countdown = 30; // 重置倒计时
+        updateCountdownDisplay();
+    }
 });
 
 function showLoading() {
